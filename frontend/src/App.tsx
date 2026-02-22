@@ -129,7 +129,7 @@ function MainPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentConversationId, mediaTab, imageModel, videoModel, aspectRatio, duration, resolution, authType, geminiApiKey, setCurrentConversationId])
+  }, [currentConversationId, locale, mediaTab, imageModel, videoModel, aspectRatio, duration, resolution, authType, geminiApiKey, setCurrentConversationId])
 
   const handleStudioGenerate = useCallback(async (prompt: string) => {
     setLoading(true)
