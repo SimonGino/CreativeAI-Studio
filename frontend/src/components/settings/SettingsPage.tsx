@@ -3,8 +3,10 @@ import { Eye, EyeOff, Save, Plug, Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getSettings, updateSettings } from '@/lib/api';
+import { useI18n } from '@/hooks/useI18n';
 
 export function SettingsPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -17,10 +19,10 @@ export function SettingsPage() {
     setMessage(null);
     try {
       await updateSettings({ gemini_api_key: geminiApiKey || undefined });
-      setMessage({ type: 'success', text: 'Settings saved successfully.' });
+      setMessage({ type: 'success', text: t('settings.saved') });
       setGeminiApiKey('');
     } catch {
-      setMessage({ type: 'error', text: 'Failed to save settings.' });
+      setMessage({ type: 'error', text: t('settings.saveFailed') });
     } finally {
       setSaving(false);
     }
@@ -32,12 +34,12 @@ export function SettingsPage() {
     try {
       const s = await getSettings();
       if (s.gemini_api_key_configured || s.vertex_ai_configured) {
-        setMessage({ type: 'success', text: 'Connection OK.' });
+        setMessage({ type: 'success', text: t('settings.connectionOk') });
       } else {
-        setMessage({ type: 'error', text: 'No API key or service account configured.' });
+        setMessage({ type: 'error', text: t('settings.noAuth') });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Connection failed.' });
+      setMessage({ type: 'error', text: t('settings.connectionFailed') });
     } finally {
       setTesting(false);
     }
@@ -53,7 +55,7 @@ export function SettingsPage() {
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-lg font-semibold text-[var(--text)]">Settings</h1>
+          <h1 className="text-lg font-semibold text-[var(--text)]">{t('settings.title')}</h1>
         </div>
 
         {message && (
@@ -69,19 +71,19 @@ export function SettingsPage() {
 
         <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-5 space-y-3">
           <div>
-            <h2 className="text-[14px] font-medium text-[var(--text)]">Gemini API</h2>
+            <h2 className="text-[14px] font-medium text-[var(--text)]">{t('settings.section.gemini.title')}</h2>
             <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
-              Enter your Google Gemini API key for image and video generation.
+              {t('settings.section.gemini.desc')}
             </p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[12px] font-medium text-[var(--text-secondary)]">API Key</label>
+            <label className="text-[12px] font-medium text-[var(--text-secondary)]">{t('settings.field.apiKey')}</label>
             <div className="relative">
               <input
                 type={showApiKey ? 'text' : 'password'}
                 value={geminiApiKey}
                 onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="Enter your Gemini API key"
+                placeholder={t('settings.placeholder.apiKey')}
                 className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 pr-10 text-[13px] text-[var(--text)] placeholder-[var(--text-placeholder)] outline-none focus:border-[var(--border-hover)]"
               />
               <button
@@ -96,11 +98,8 @@ export function SettingsPage() {
         </div>
 
         <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-5 space-y-1.5">
-          <h2 className="text-[14px] font-medium text-[var(--text)]">Vertex AI</h2>
-          <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-            Set <code className="rounded bg-[var(--bg-secondary)] px-1 py-0.5 text-[11px] text-[var(--text-secondary)]">VERTEX_AI_SERVICE_ACCOUNT_JSON</code> in
-            <code className="rounded bg-[var(--bg-secondary)] px-1 py-0.5 text-[11px] text-[var(--text-secondary)]"> .env</code> to the JSON file path.
-          </p>
+          <h2 className="text-[14px] font-medium text-[var(--text)]">{t('settings.section.vertex.title')}</h2>
+          <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">{t('settings.section.vertex.desc')}</p>
         </div>
 
         <div className="flex gap-2.5">
@@ -115,7 +114,7 @@ export function SettingsPage() {
             )}
           >
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
-            Test Connection
+            {t('settings.button.testConnection')}
           </button>
           <button
             onClick={handleSave}
@@ -128,7 +127,7 @@ export function SettingsPage() {
             )}
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            Save Settings
+            {t('settings.button.save')}
           </button>
         </div>
       </div>
