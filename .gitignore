@@ -19,7 +19,7 @@ backend/data/*.db
 backend/data/*.db-journal
 
 # Generated media
-media/
+backend/media/
 
 # IDE
 .vscode/
