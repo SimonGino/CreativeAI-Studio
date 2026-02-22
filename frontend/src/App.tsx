@@ -20,9 +20,10 @@ import type { Conversation, Message, VideoStatusUpdate } from '@/types'
 
 function MainPage() {
   const {
+    locale,
     uiMode, mediaTab, imageModel, videoModel,
     aspectRatio, duration, resolution, authType, geminiApiKey,
-    currentConversationId, setCurrentConversationId, sidebarOpen,
+    currentConversationId, setCurrentConversationId,
   } = useAppStore()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -33,6 +34,10 @@ function MainPage() {
   useEffect(() => {
     listConversations().then(setConversations).catch(console.error)
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   useEffect(() => {
     if (!currentConversationId) {
