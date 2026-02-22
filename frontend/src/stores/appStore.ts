@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import type { UIMode, MediaType, AuthType } from '@/types';
+import type { Locale } from '@/lib/i18n';
+
+const LOCALE_STORAGE_KEY = 'creativeai-studio:locale';
+
+function getInitialLocale(): Locale {
+  if (typeof window === 'undefined') return 'en';
+  const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+  if (saved === 'en' || saved === 'zh-CN') return saved;
+  return window.navigator.language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+}
 
 interface AppState {
+  // Locale
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+
   // UI mode
   uiMode: UIMode;
   setUIMode: (mode: UIMode) => void;
@@ -40,6 +54,14 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  locale: getInitialLocale(),
+  setLocale: (locale) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    }
+    set({ locale });
+  },
+
   uiMode: 'chat',
   setUIMode: (mode) => set({ uiMode: mode }),
 

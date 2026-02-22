@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon, VideoIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImagePreview from '@/components/media/ImagePreview';
+import { useI18n } from '@/hooks/useI18n';
 import type { MediaType } from '@/types';
 
 interface PreviewPanelProps {
@@ -77,6 +78,7 @@ export default function PreviewPanel({ results, mediaType }: PreviewPanelProps) 
 }
 
 function EmptyState({ mediaType }: { mediaType: MediaType }) {
+  const { t } = useI18n();
   const Icon = mediaType === 'video' ? VideoIcon : ImageIcon;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 text-[var(--text-placeholder)]">
@@ -85,10 +87,10 @@ function EmptyState({ mediaType }: { mediaType: MediaType }) {
       </div>
       <div className="text-center">
         <p className="text-[14px] font-medium text-[var(--text-tertiary)]">
-          No {mediaType === 'video' ? 'videos' : 'images'} yet
+          {mediaType === 'video' ? t('preview.empty.title.videos') : t('preview.empty.title.images')}
         </p>
         <p className="mt-0.5 text-[12px] text-[var(--text-placeholder)]">
-          Configure parameters and click Generate
+          {t('preview.empty.subtitle')}
         </p>
       </div>
     </div>

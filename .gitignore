@@ -9,7 +9,7 @@ build/
 
 # Environment
 .env
-*.json
+backend/**/*.json
 !.env.example
 
 # Database
@@ -19,7 +19,7 @@ backend/data/*.db
 backend/data/*.db-journal
 
 # Generated media
-media/
+backend/media/
 
 # IDE
 .vscode/

@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import ChatView from '@/components/chat/ChatView'
 import StudioView from '@/components/studio/StudioView'
 import { SettingsPage } from '@/components/settings/SettingsPage'
+import { t as translate } from '@/lib/i18n'
 import {
   listConversations,
   createConversation,
@@ -20,9 +21,10 @@ import type { Conversation, Message, VideoStatusUpdate } from '@/types'
 
 function MainPage() {
   const {
+    locale,
     uiMode, mediaTab, imageModel, videoModel,
     aspectRatio, duration, resolution, authType, geminiApiKey,
-    currentConversationId, setCurrentConversationId, sidebarOpen,
+    currentConversationId, setCurrentConversationId,
   } = useAppStore()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -33,6 +35,10 @@ function MainPage() {
   useEffect(() => {
     listConversations().then(setConversations).catch(console.error)
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   useEffect(() => {
     if (!currentConversationId) {
@@ -84,7 +90,7 @@ function MainPage() {
         })
 
         const assistantMsg = await addMessage(convId, {
-          role: 'assistant', content: 'Generating video...', media_type: 'video', model,
+          role: 'assistant', content: translate(locale, 'assistant.generatingVideo'), media_type: 'video', model,
         })
         setMessages(prev => [...prev, assistantMsg])
 
@@ -93,12 +99,12 @@ function MainPage() {
           const data: VideoStatusUpdate = JSON.parse(e.data)
           if (data.status === 'completed' && data.video_url) {
             setMessages(prev => prev.map(m =>
-              m.id === assistantMsg.id ? { ...m, content: 'Video generated', media_url: data.video_url } : m
+              m.id === assistantMsg.id ? { ...m, content: translate(locale, 'assistant.videoGenerated'), media_url: data.video_url } : m
             ))
             es.close()
           } else if (data.status === 'failed') {
             setMessages(prev => prev.map(m =>
-              m.id === assistantMsg.id ? { ...m, content: `Failed: ${data.error}` } : m
+              m.id === assistantMsg.id ? { ...m, content: translate(locale, 'assistant.failed', { error: data.error ?? '' }) } : m
             ))
             es.close()
           }
@@ -113,7 +119,7 @@ function MainPage() {
 
         for (const url of result.images) {
           const assistantMsg = await addMessage(convId, {
-            role: 'assistant', content: 'Image generated', media_type: 'image', media_url: url, model,
+            role: 'assistant', content: translate(locale, 'assistant.imageGenerated'), media_type: 'image', media_url: url, model,
           })
           setMessages(prev => [...prev, assistantMsg])
         }
@@ -123,7 +129,7 @@ function MainPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentConversationId, mediaTab, imageModel, videoModel, aspectRatio, duration, resolution, authType, geminiApiKey, setCurrentConversationId])
+  }, [currentConversationId, locale, mediaTab, imageModel, videoModel, aspectRatio, duration, resolution, authType, geminiApiKey, setCurrentConversationId])
 
   const handleStudioGenerate = useCallback(async (prompt: string) => {
     setLoading(true)
@@ -176,7 +182,7 @@ function MainPage() {
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
           {uiMode === 'chat' ? (
             <ChatView
               messages={messages}

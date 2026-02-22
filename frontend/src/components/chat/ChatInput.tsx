@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, type KeyboardEvent, type Chan
 import { ArrowUp, ImagePlus, ChevronDown, Check, Image, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
+import { useI18n } from '@/hooks/useI18n';
 import { IMAGE_MODELS, VIDEO_MODELS, ASPECT_RATIOS } from '@/types';
 import type { ModelOption } from '@/types';
 
@@ -82,6 +83,7 @@ function BottomDropdown({
 }
 
 export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+  const { t } = useI18n();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -139,7 +141,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
             <textarea
               ref={textareaRef}
               rows={1}
-              placeholder="Describe what you want to create..."
+              placeholder={t('chat.input.placeholder')}
               className="flex-1 resize-none bg-transparent py-1 text-[14px] text-[var(--text)] placeholder-[var(--text-placeholder)] outline-none"
               onChange={handleInput}
               onKeyDown={handleKeyDown}
@@ -166,20 +168,20 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
               items={modelItems}
               value={currentModel}
               onChange={setCurrentModel}
-              renderLabel={(item) => <span>{item?.label ?? 'Model'}</span>}
+              renderLabel={(item) => <span>{item?.label ?? t('chat.input.model')}</span>}
             />
 
             <BottomDropdown
               items={ratioItems}
               value={aspectRatio}
               onChange={setAspectRatio}
-              renderLabel={(item) => <span>{item?.label ?? 'Ratio'}</span>}
+              renderLabel={(item) => <span>{item?.label ?? t('chat.input.ratio')}</span>}
             />
 
             <div className="ml-auto flex items-center gap-0.5 rounded-md bg-[var(--bg-secondary)] p-0.5">
               {([
-                { type: 'image' as const, icon: Image, label: 'Image' },
-                { type: 'video' as const, icon: Video, label: 'Video' },
+                { type: 'image' as const, icon: Image, label: t('chat.input.image') },
+                { type: 'video' as const, icon: Video, label: t('chat.input.video') },
               ]).map(({ type, icon: Icon, label }) => (
                 <button
                   key={type}
