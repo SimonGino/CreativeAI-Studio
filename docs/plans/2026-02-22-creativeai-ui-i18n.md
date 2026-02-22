@@ -8,49 +8,45 @@
 
 **Tech Stack:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Zustand + React Router
 
+**Working Directory:** 本计划默认你在 **worktree 根目录** 执行命令，例如：
+```bash
+cd /Users/wqq/Code/Freelance/CreativeAI-Studio-ui-i18n
+```
+
 ---
 
 ## Preflight（推荐）
 
-### Task 0: 建议创建 worktree + 基线提交（可选但强烈推荐）
+### Task 0: 确认分支 + 安装依赖 + 基线构建
 
-> 现状：`CreativeAI-Studio` 仓库当前只有设计文档被提交，其余 `backend/`、`frontend/` 等仍是 untracked。  
-> 为了让后续 UI 改动的 commit diff 清晰，建议先把现有代码做一次“基线提交”。
+**Files:** 无
 
-**Files:**
-- Modify: `CreativeAI-Studio/.gitignore`（如果需要补充忽略规则）
-
-**Step 1:（可选）创建 worktree**
+**Step 1: 确认当前在 `ui-i18n` 分支**
 
 Run:
 ```bash
-git -C CreativeAI-Studio worktree add ../CreativeAI-Studio-ui-i18n -b ui-i18n
+git status -sb
 ```
 
-Expected: 在 `../CreativeAI-Studio-ui-i18n` 生成干净工作目录。
+Expected: 第一行类似 `## ui-i18n`
 
-**Step 2: 检查 staging 内容（确保无敏感文件）**
+**Step 2: 安装前端依赖**
 
 Run:
 ```bash
-git -C CreativeAI-Studio status --porcelain=v1
+pnpm -C frontend install
 ```
 
-Expected:
-- 有大量 `?? backend/`、`?? frontend/` 等
-- 不应出现 `.env`（被 `.gitignore` 忽略）
-- 不应出现 `frontend/node_modules/`、`frontend/dist/`（被 `.gitignore` 忽略）
+Expected: 安装成功（无需把 `node_modules/` 提交到 git）
 
-**Step 3: 基线提交**
+**Step 3: 跑一次前端构建，确认 worktree 起点干净**
 
 Run:
 ```bash
-git -C CreativeAI-Studio add -A
-git -C CreativeAI-Studio status
-git -C CreativeAI-Studio commit -m "chore: baseline project files"
+pnpm -C frontend build
 ```
 
-Expected: 生成一个包含现有项目文件（不含 secrets / node_modules / dist）的基线 commit。
+Expected: build 成功
 
 ---
 
@@ -59,7 +55,7 @@ Expected: 生成一个包含现有项目文件（不含 secrets / node_modules /
 ### Task 1: 新增轻量 i18n 模块（字典 + t + 相对时间）
 
 **Files:**
-- Create: `CreativeAI-Studio/frontend/src/lib/i18n.ts`
+- Create: `frontend/src/lib/i18n.ts`
 
 **Step 1: 创建 `i18n.ts`（完整代码）**
 
@@ -220,7 +216,7 @@ export function formatRelativeTime(locale: Locale, dateStr: string): string {
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Expected: TypeScript 编译通过（无报错）。
@@ -228,8 +224,8 @@ Expected: TypeScript 编译通过（无报错）。
 **Step 3: Commit**
 
 ```bash
-git -C CreativeAI-Studio add frontend/src/lib/i18n.ts
-git -C CreativeAI-Studio commit -m "feat(frontend): add lightweight i18n core"
+git add frontend/src/lib/i18n.ts
+git commit -m "feat(frontend): add lightweight i18n core"
 ```
 
 ---
@@ -237,7 +233,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): add lightweight i18n core"
 ### Task 2: 在 zustand store 增加 `locale` + `localStorage` 持久化
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/stores/appStore.ts:4`
+- Modify: `frontend/src/stores/appStore.ts:4`
 
 **Step 1: 增加 locale 状态与初始化逻辑（示例代码）**
 
@@ -262,7 +258,7 @@ function getInitialLocale(): Locale {
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Expected: PASS
@@ -270,8 +266,8 @@ Expected: PASS
 **Step 3: Commit**
 
 ```bash
-git -C CreativeAI-Studio add frontend/src/stores/appStore.ts
-git -C CreativeAI-Studio commit -m "feat(frontend): persist locale in app store"
+git add frontend/src/stores/appStore.ts
+git commit -m "feat(frontend): persist locale in app store"
 ```
 
 ---
@@ -279,7 +275,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): persist locale in app store"
 ### Task 3: 新增 `useI18n()` hook（减少重复样板代码）
 
 **Files:**
-- Create: `CreativeAI-Studio/frontend/src/hooks/useI18n.ts`
+- Create: `frontend/src/hooks/useI18n.ts`
 
 **Step 1: 创建 hook（完整代码）**
 
@@ -305,7 +301,7 @@ export function useI18n() {
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Expected: PASS
@@ -313,8 +309,8 @@ Expected: PASS
 **Step 3: Commit**
 
 ```bash
-git -C CreativeAI-Studio add frontend/src/hooks/useI18n.ts
-git -C CreativeAI-Studio commit -m "feat(frontend): add useI18n hook"
+git add frontend/src/hooks/useI18n.ts
+git commit -m "feat(frontend): add useI18n hook"
 ```
 
 ---
@@ -324,7 +320,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): add useI18n hook"
 ### Task 4: 修复主区域高度链路（Chat/Studio 占满高度）
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/App.tsx:169`
+- Modify: `frontend/src/App.tsx:169`
 
 **Step 1: 调整 `<main>` 为 flex 容器**
 
@@ -337,7 +333,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): add useI18n hook"
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Expected: PASS
@@ -345,8 +341,8 @@ Expected: PASS
 **Step 3: Commit**
 
 ```bash
-git -C CreativeAI-Studio add frontend/src/App.tsx
-git -C CreativeAI-Studio commit -m "fix(frontend): make main layout flex for full-height views"
+git add frontend/src/App.tsx
+git commit -m "fix(frontend): make main layout flex for full-height views"
 ```
 
 ---
@@ -354,7 +350,7 @@ git -C CreativeAI-Studio commit -m "fix(frontend): make main layout flex for ful
 ### Task 5: Header 增加语言切换 + 文案本地化
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/components/layout/Header.tsx:7`
+- Modify: `frontend/src/components/layout/Header.tsx:7`
 
 **Step 1: 用 `useI18n()` 替换硬编码**
 
@@ -372,13 +368,13 @@ git -C CreativeAI-Studio commit -m "fix(frontend): make main layout flex for ful
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/components/layout/Header.tsx frontend/src/App.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): add language switch and localize header"
+git add frontend/src/components/layout/Header.tsx frontend/src/App.tsx
+git commit -m "feat(frontend): add language switch and localize header"
 ```
 
 ---
@@ -386,7 +382,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): add language switch and loca
 ### Task 6: Sidebar 文案本地化 + 相对时间本地化
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/components/layout/Sidebar.tsx:13`
+- Modify: `frontend/src/components/layout/Sidebar.tsx:13`
 
 **Step 1: 替换文案与时间格式**
 
@@ -401,13 +397,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): add language switch and loca
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/components/layout/Sidebar.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): localize sidebar and relative time"
+git add frontend/src/components/layout/Sidebar.tsx
+git commit -m "feat(frontend): localize sidebar and relative time"
 ```
 
 ---
@@ -415,8 +411,8 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize sidebar and relativ
 ### Task 7: ChatView/ChatInput 文案本地化 + Chat 视图贴底修复
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/components/chat/ChatView.tsx:20`
-- Modify: `CreativeAI-Studio/frontend/src/components/chat/ChatInput.tsx:127`
+- Modify: `frontend/src/components/chat/ChatView.tsx:20`
+- Modify: `frontend/src/components/chat/ChatInput.tsx:127`
 
 **Step 1: ChatView 空状态文案替换**
 
@@ -443,13 +439,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize sidebar and relativ
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/components/chat/ChatView.tsx frontend/src/components/chat/ChatInput.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): localize chat UI and fix chat layout"
+git add frontend/src/components/chat/ChatView.tsx frontend/src/components/chat/ChatInput.tsx
+git commit -m "feat(frontend): localize chat UI and fix chat layout"
 ```
 
 ---
@@ -457,8 +453,8 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize chat UI and fix cha
 ### Task 8: Studio（ParamPanel/PreviewPanel）文案本地化
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/components/studio/ParamPanel.tsx:43`
-- Modify: `CreativeAI-Studio/frontend/src/components/studio/PreviewPanel.tsx:79`
+- Modify: `frontend/src/components/studio/ParamPanel.tsx:43`
+- Modify: `frontend/src/components/studio/PreviewPanel.tsx:79`
 
 **Step 1: ParamPanel 文案替换**
 
@@ -486,13 +482,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize chat UI and fix cha
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/components/studio/ParamPanel.tsx frontend/src/components/studio/PreviewPanel.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): localize studio UI"
+git add frontend/src/components/studio/ParamPanel.tsx frontend/src/components/studio/PreviewPanel.tsx
+git commit -m "feat(frontend): localize studio UI"
 ```
 
 ---
@@ -500,7 +496,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize studio UI"
 ### Task 9: SettingsPage 文案本地化
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/components/settings/SettingsPage.tsx:15`
+- Modify: `frontend/src/components/settings/SettingsPage.tsx:15`
 
 **Step 1: 替换所有硬编码文案**
 
@@ -513,13 +509,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize studio UI"
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/components/settings/SettingsPage.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): localize settings page"
+git add frontend/src/components/settings/SettingsPage.tsx
+git commit -m "feat(frontend): localize settings page"
 ```
 
 ---
@@ -527,7 +523,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize settings page"
 ### Task 10: App 内部生成状态文案本地化（Chat/Studio）
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/App.tsx:62`
+- Modify: `frontend/src/App.tsx:62`
 
 **Step 1: 替换生成状态字符串**
 
@@ -540,13 +536,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize settings page"
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/App.tsx
-git -C CreativeAI-Studio commit -m "feat(frontend): localize assistant status messages"
+git add frontend/src/App.tsx
+git commit -m "feat(frontend): localize assistant status messages"
 ```
 
 ---
@@ -554,7 +550,7 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize assistant status me
 ### Task 11: 全局字体回退（改善中文显示），保持无渐变
 
 **Files:**
-- Modify: `CreativeAI-Studio/frontend/src/index.css:4`
+- Modify: `frontend/src/index.css:4`
 
 **Step 1: 更新 `--font-sans`**
 
@@ -567,13 +563,13 @@ git -C CreativeAI-Studio commit -m "feat(frontend): localize assistant status me
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Commit:
 ```bash
-git -C CreativeAI-Studio add frontend/src/index.css
-git -C CreativeAI-Studio commit -m "style(frontend): improve font fallback for zh-CN"
+git add frontend/src/index.css
+git commit -m "style(frontend): improve font fallback for zh-CN"
 ```
 
 ---
@@ -586,7 +582,7 @@ git -C CreativeAI-Studio commit -m "style(frontend): improve font fallback for z
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend lint
+pnpm -C frontend lint
 ```
 
 Expected: 无 eslint 错误。
@@ -595,7 +591,7 @@ Expected: 无 eslint 错误。
 
 Run:
 ```bash
-pnpm -C CreativeAI-Studio/frontend build
+pnpm -C frontend build
 ```
 
 Expected: build 成功。
@@ -607,4 +603,3 @@ Expected: build 成功。
 - Studio：左侧参数滚动；右侧空状态居中；生成后预览区显示正常。
 - Settings：切换中英文；按钮/提示文案是否覆盖完整；刷新后语言是否保持。
 - 全站：确认没有任何渐变样式。
-
