@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, Video, ImageIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
+import { useI18n } from '@/hooks/useI18n';
 import {
   IMAGE_MODELS,
   VIDEO_MODELS,
@@ -20,6 +21,7 @@ interface ParamPanelProps {
 type VideoTab = 'text-to-video' | 'image-to-video';
 
 export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPanelProps) {
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState('');
   const [videoTab, setVideoTab] = useState<VideoTab>('text-to-video');
 
@@ -42,8 +44,8 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
 
   const tabs = mediaType === 'video'
     ? [
-        { key: 'text-to-video' as VideoTab, label: 'Text to Video', icon: Video },
-        { key: 'image-to-video' as VideoTab, label: 'Image to Video', icon: ImageIcon },
+        { key: 'text-to-video' as VideoTab, label: t('studio.textToVideo'), icon: Video },
+        { key: 'image-to-video' as VideoTab, label: t('studio.imageToVideo'), icon: ImageIcon },
       ]
     : null;
 
@@ -74,14 +76,14 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
         <div className="flex rounded-lg bg-[var(--bg-secondary)] p-0.5">
           <div className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--bg)] py-2 px-3 text-[13px] font-medium text-[var(--text)] shadow-sm">
             <ImageIcon className="h-3.5 w-3.5" />
-            Image Generation
+            {t('studio.imageGeneration')}
           </div>
         </div>
       )}
 
       {/* Model */}
       <section className="space-y-2.5">
-        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">Model</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">{t('studio.section.model')}</h3>
         <div className="grid grid-cols-2 gap-2">
           {models.map((model: ModelOption) => (
             <button
@@ -106,11 +108,11 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
 
       {/* Prompt */}
       <section className="flex flex-1 flex-col gap-2">
-        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">Prompt</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">{t('studio.section.prompt')}</h3>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={mediaType === 'video' ? 'Describe the video...' : 'Describe the image...'}
+          placeholder={mediaType === 'video' ? t('studio.prompt.videoPlaceholder') : t('studio.prompt.imagePlaceholder')}
           className="flex-1 min-h-[160px] w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] p-3 text-[14px] text-[var(--text)] placeholder-[var(--text-placeholder)] resize-none outline-none focus:border-[var(--border-hover)]"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate();
@@ -120,10 +122,10 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
 
       {/* Parameters */}
       <section className="space-y-3">
-        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">Parameters</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-secondary)]">{t('studio.section.parameters')}</h3>
 
         <div className="space-y-1.5">
-          <label className="text-[11px] text-[var(--text-tertiary)]">Aspect Ratio</label>
+          <label className="text-[11px] text-[var(--text-tertiary)]">{t('studio.param.aspectRatio')}</label>
           <div className="flex flex-wrap gap-1.5">
             {ASPECT_RATIOS.map((ratio) => (
               <button
@@ -144,7 +146,7 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
 
         {mediaType === 'video' && (
           <div className="space-y-1.5">
-            <label className="text-[11px] text-[var(--text-tertiary)]">Duration</label>
+            <label className="text-[11px] text-[var(--text-tertiary)]">{t('studio.param.duration')}</label>
             <div className="flex gap-1.5">
               {VIDEO_DURATIONS.map((d) => (
                 <button
@@ -177,7 +179,7 @@ export default function ParamPanel({ onGenerate, loading, mediaType }: ParamPane
         )}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-        {loading ? 'Generating...' : 'Generate'}
+        {loading ? t('studio.generating') : t('studio.generate')}
       </button>
     </div>
   );
