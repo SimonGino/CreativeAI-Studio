@@ -1,6 +1,8 @@
 import { Plus, Trash2, MessageSquare, PanelLeftClose } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/useI18n';
+import { formatRelativeTime } from '@/lib/i18n';
 import type { Conversation } from '@/types';
 
 interface SidebarProps {
@@ -10,23 +12,13 @@ interface SidebarProps {
   onDeleteConversation: (id: string) => void;
 }
 
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 export default function Sidebar({
   conversations,
   onNewConversation,
   onSelectConversation,
   onDeleteConversation,
 }: SidebarProps) {
+  const { locale, t } = useI18n();
   const currentId = useAppStore((s) => s.currentConversationId);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
@@ -36,7 +28,7 @@ export default function Sidebar({
   return (
     <aside className="flex w-[240px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]">
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-[12px] font-medium text-[var(--text-tertiary)]">History</span>
+        <span className="text-[12px] font-medium text-[var(--text-tertiary)]">{t('sidebar.history')}</span>
         <button
           onClick={() => setSidebarOpen(false)}
           className="rounded-md p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
@@ -51,7 +43,7 @@ export default function Sidebar({
           className="flex w-full items-center justify-center gap-1.5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--bg-tertiary)]"
         >
           <Plus className="h-3.5 w-3.5" />
-          New Chat
+          {t('sidebar.newChat')}
         </button>
       </div>
 
@@ -72,7 +64,7 @@ export default function Sidebar({
               <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">{conv.title}</p>
-                <p className="text-[11px] text-[var(--text-tertiary)]">{relativeTime(conv.updated_at)}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">{formatRelativeTime(locale, conv.updated_at)}</p>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
