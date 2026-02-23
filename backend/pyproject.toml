@@ -1,0 +1,36 @@
+[project]
+name = "creativeai-studio-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "SimonGino", email = "rwjeek@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.131.0",
+    "google-cloud-storage>=3.9.0",
+    "google-genai>=1.64.0",
+    "pillow>=12.1.1",
+    "pydantic>=2.12.5",
+    "python-multipart>=0.0.22",
+    "uvicorn[standard]>=0.41.0",
+]
+
+[project.scripts]
+creativeai-studio-backend = "creativeai_studio_backend:main"
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
