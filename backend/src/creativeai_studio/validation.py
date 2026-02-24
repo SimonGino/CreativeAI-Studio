@@ -6,7 +6,7 @@ from typing import Any, Literal
 from creativeai_studio.api.deps import AppContext
 from creativeai_studio.model_catalog import get_model
 
-AuthMode = Literal["api_key", "vertex"]
+AuthMode = Literal["api_key"]
 
 
 class ValidationError(ValueError):
@@ -23,12 +23,11 @@ class ValidatedJobCreate:
 
 def resolve_auth_mode(payload: dict[str, Any], ctx: AppContext) -> AuthMode:
     override = (payload.get("auth") or {}).get("mode")
-    if override in ("api_key", "vertex"):
+    if override == "vertex":
+        raise ValidationError("Vertex AI auth mode has been removed. Use api_key.")
+    if override == "api_key":
         return override
-    default_mode = (ctx.settings.get_json("default_auth_mode") or {"mode": "api_key"}).get(
-        "mode", "api_key"
-    )
-    return default_mode if default_mode in ("api_key", "vertex") else "api_key"
+    return "api_key"
 
 
 def validate_job_create(payload: dict[str, Any], ctx: AppContext) -> ValidatedJobCreate:
@@ -52,17 +51,126 @@ def validate_job_create(payload: dict[str, Any], ctx: AppContext) -> ValidatedJo
         params.setdefault("prompt", payload.get("prompt"))
 
     if job_type == "video.extend":
-        if auth_mode != "vertex":
-            raise ValidationError("video.extend requires vertex auth")
-        if not ctx.settings.get_str("vertex_gcs_bucket"):
-            raise ValidationError("VERTEX_GCS_BUCKET not configured")
+        raise ValidationError("video.extend is disabled because Vertex AI auth mode has been removed")
 
-    if job_type == "image.generate" and params.get("reference_image_asset_id"):
-        if not model.get("reference_image_supported"):
-            raise ValidationError("reference_image not supported for model")
+    if job_type == "image.generate":
+        params = _normalize_reference_images(params, model)
+        _validate_image_size(params, model)
+        _validate_sequential_image_generation(params, model)
 
     params = _normalize_aspect_ratio(params, model, ctx)
     return ValidatedJobCreate(job_type=job_type, model_id=model_id, auth_mode=auth_mode, params=params)
+
+
+def _normalize_reference_images(params: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
+    raw_multi = params.get("reference_image_asset_ids")
+    ids: list[str] = []
+    if raw_multi is not None:
+        if not isinstance(raw_multi, list):
+            raise ValidationError("reference_image_asset_ids must be a list")
+        for item in raw_multi:
+            value = str(item or "").strip()
+            if value:
+                ids.append(value)
+
+    single = str(params.get("reference_image_asset_id") or "").strip()
+    if single and single not in ids:
+        ids.insert(0, single)
+
+    if not ids:
+        params.pop("reference_image_asset_ids", None)
+        return params
+
+    if not model.get("reference_image_supported"):
+        raise ValidationError("reference_image not supported for model")
+
+    max_reference_images = model.get("max_reference_images")
+    if max_reference_images is not None and len(ids) > int(max_reference_images):
+        raise ValidationError(f"reference_image count exceeds max {int(max_reference_images)}")
+
+    params["reference_image_asset_ids"] = ids
+    params["reference_image_asset_id"] = ids[0]
+    return params
+
+
+def _validate_sequential_image_generation(params: dict[str, Any], model: dict[str, Any]) -> None:
+    output_count_for_limit = 1
+    seq = params.get("sequential_image_generation")
+    if seq is None:
+        _validate_image_total_limit(params, model, output_count_for_limit=output_count_for_limit)
+        return
+    if seq not in ("disabled", "auto"):
+        raise ValidationError("sequential_image_generation must be disabled or auto")
+
+    if seq == "disabled":
+        _validate_image_total_limit(params, model, output_count_for_limit=output_count_for_limit)
+        return
+
+    if not model.get("sequential_image_generation_supported"):
+        raise ValidationError("sequential_image_generation not supported for model")
+
+    opts = params.get("sequential_image_generation_options")
+    if opts is None:
+        _validate_image_total_limit(params, model, output_count_for_limit=output_count_for_limit)
+        return
+    if not isinstance(opts, dict):
+        raise ValidationError("sequential_image_generation_options must be an object")
+
+    max_images = opts.get("max_images")
+    if max_images is None:
+        _validate_image_total_limit(params, model, output_count_for_limit=output_count_for_limit)
+        return
+
+    try:
+        max_images_int = int(max_images)
+    except Exception as exc:  # noqa: BLE001
+        raise ValidationError("max_images must be an integer") from exc
+
+    if max_images_int < 1:
+        raise ValidationError("max_images must be >= 1")
+
+    model_max_images = model.get("max_output_images")
+    if model_max_images is not None and max_images_int > int(model_max_images):
+        raise ValidationError(f"max_images exceeds model max {int(model_max_images)}")
+
+    output_count_for_limit = max_images_int
+    _validate_image_total_limit(params, model, output_count_for_limit=output_count_for_limit)
+    params["sequential_image_generation_options"] = {"max_images": max_images_int}
+
+
+def _validate_image_total_limit(
+    params: dict[str, Any],
+    model: dict[str, Any],
+    *,
+    output_count_for_limit: int,
+) -> None:
+    total_limit = model.get("max_total_images")
+    if total_limit is None:
+        return
+    ref_count = len(params.get("reference_image_asset_ids") or [])
+    if ref_count + int(output_count_for_limit) > int(total_limit):
+        raise ValidationError(f"reference_image count + max_images exceeds {int(total_limit)}")
+
+
+def _validate_image_size(params: dict[str, Any], model: dict[str, Any]) -> None:
+    image_size = params.get("image_size")
+    if image_size is None:
+        return
+
+    supported = model.get("resolution_presets")
+    if not supported:
+        return
+
+    value = str(image_size).strip().lower()
+    if not value:
+        return
+
+    supported_norm = {str(v).strip().lower() for v in supported if str(v).strip()}
+    if supported_norm and value not in supported_norm:
+        allowed = ", ".join(str(v) for v in supported)
+        raise ValidationError(f"image_size not supported; allowed: {allowed}")
+
+
 
 
 def _parse_ratio(r: str) -> float | None:

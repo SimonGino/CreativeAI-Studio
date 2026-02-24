@@ -52,13 +52,6 @@ export const api = {
   putSettings: (payload: Record<string, unknown>) =>
     apiJson<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   testSettings: () => apiJson<Record<string, { ok: boolean; error?: string }>>('/api/settings/test', { method: 'POST', body: '{}' }),
-  uploadVertexSa: async (file: File) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    const resp = await fetch('/api/settings/vertex-sa', { method: 'POST', body: fd })
-    if (!resp.ok) throw new Error(await readErrorDetail(resp))
-    return (await resp.json()) as { ok: boolean }
-  },
   uploadAsset: async (file: File) => {
     const fd = new FormData()
     fd.append('file', file)
@@ -93,4 +86,3 @@ export const api = {
   cloneJob: (id: string, payload: Record<string, unknown>) =>
     apiJson<Job>(`/api/jobs/${id}/clone`, { method: 'POST', body: JSON.stringify(payload) }),
 }
-

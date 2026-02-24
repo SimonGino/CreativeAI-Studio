@@ -26,15 +26,19 @@ def _create_job(payload: dict, ctx: AppContext, runner) -> dict:
     )
 
     params = v.params
-    if v.job_type == "image.generate" and params.get("reference_image_asset_id"):
-        ctx.job_assets.add(job_id=job_id, asset_id=str(params["reference_image_asset_id"]), role="input_reference")
+    if v.job_type == "image.generate":
+        ref_ids = params.get("reference_image_asset_ids")
+        if isinstance(ref_ids, list):
+            for ref_id in ref_ids:
+                if ref_id:
+                    ctx.job_assets.add(job_id=job_id, asset_id=str(ref_id), role="input_reference")
+        elif params.get("reference_image_asset_id"):
+            ctx.job_assets.add(job_id=job_id, asset_id=str(params["reference_image_asset_id"]), role="input_reference")
     if v.job_type == "video.generate":
         if params.get("start_image_asset_id"):
             ctx.job_assets.add(job_id=job_id, asset_id=str(params["start_image_asset_id"]), role="input_start")
         if params.get("end_image_asset_id"):
             ctx.job_assets.add(job_id=job_id, asset_id=str(params["end_image_asset_id"]), role="input_end")
-    if v.job_type == "video.extend" and params.get("input_video_asset_id"):
-        ctx.job_assets.add(job_id=job_id, asset_id=str(params["input_video_asset_id"]), role="input_video")
 
     if runner is not None:
         runner.enqueue(job_id)

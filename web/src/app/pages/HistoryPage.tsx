@@ -47,9 +47,22 @@ export function HistoryPage() {
     return models.find((m) => m.model_id === selected.model_id) || null
   }, [models, selected])
 
-  const outputAssetId = (selected?.result?.output_asset_id as string | undefined) || null
-  const outputUrl = outputAssetId ? `/api/assets/${outputAssetId}/content` : null
-  const isVideoOut = outputUrl && selected?.job_type?.startsWith('video')
+  const rawOutputs = Array.isArray(selected?.result?.outputs)
+    ? selected.result.outputs.filter((o) => !!o && typeof o.asset_id === 'string')
+    : []
+  const fallbackOutputAssetId = (selected?.result?.output_asset_id as string | undefined) || null
+  const normalizedOutputs =
+    rawOutputs.length > 0
+      ? rawOutputs
+      : fallbackOutputAssetId
+        ? [{ asset_id: fallbackOutputAssetId, media_type: selected?.job_type?.startsWith('video') ? 'video' : 'image' }]
+        : []
+  const primaryOutput = normalizedOutputs[0] || null
+  const outputUrl = primaryOutput ? `/api/assets/${primaryOutput.asset_id}/content` : null
+  const isVideoOut = outputUrl && (primaryOutput?.media_type === 'video' || selected?.job_type?.startsWith('video'))
+  const imageOutputUrls = normalizedOutputs
+    .filter((o) => (o.media_type || 'image') === 'image')
+    .map((o) => ({ assetId: o.asset_id, url: `/api/assets/${o.asset_id}/content` }))
 
   const canCancel = selected && (selected.status === 'queued' || selected.status === 'running')
 
@@ -218,6 +231,17 @@ export function HistoryPage() {
                     {outputUrl ? (
                       isVideoOut ? (
                         <video className="previewMedia" src={outputUrl} controls />
+                      ) : imageOutputUrls.length > 1 ? (
+                        <div style={{ width: '100%', display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+                          {imageOutputUrls.map((item, idx) => (
+                            <div key={item.assetId} style={{ display: 'grid', gap: 6 }}>
+                              <img className="previewMedia" src={item.url} alt={`output-${idx + 1}`} />
+                              <div className="muted" style={{ textAlign: 'center' }}>
+                                输出 #{idx + 1}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       ) : (
                         <img className="previewMedia" src={outputUrl} alt="output" />
                       )

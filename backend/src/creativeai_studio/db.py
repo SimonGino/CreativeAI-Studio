@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS assets (
 
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
-  job_type TEXT NOT NULL,              -- image.generate|video.generate|video.extend
+  job_type TEXT NOT NULL,              -- image.generate|video.generate
   model_id TEXT NOT NULL,
-  auth_mode TEXT NOT NULL,             -- api_key|vertex
+  auth_mode TEXT NOT NULL,             -- api_key
   status TEXT NOT NULL,                -- queued|running|succeeded|failed|canceled
   cancel_requested INTEGER NOT NULL DEFAULT 0,
   progress REAL,

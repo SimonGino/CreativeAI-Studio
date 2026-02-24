@@ -1,4 +1,4 @@
-export type AuthMode = 'api_key' | 'vertex'
+export type AuthMode = 'api_key'
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'
 
@@ -19,19 +19,32 @@ export type ModelInfo = {
   resolution_presets?: string[] | null
   aspect_ratios?: string[] | null
   reference_image_supported?: boolean
+  max_reference_images?: number | null
+  sequential_image_generation_supported?: boolean
+  max_output_images?: number | null
+  max_total_images?: number | null
   start_end_image_supported?: boolean
   extend_supported?: boolean
-  extend_requires_vertex?: boolean
   duration_seconds?: number[] | null
 }
 
 export type Settings = {
   default_auth_mode: AuthMode
   google_api_key_present: boolean
-  vertex_project_id: string | null
-  vertex_location: string | null
-  vertex_gcs_bucket: string | null
-  vertex_sa_present: boolean
+  ark_api_key_present: boolean
+}
+
+export type JobOutput = {
+  asset_id: string
+  media_type?: MediaType
+  role?: string
+  index?: number
+}
+
+export type JobResult = {
+  output_asset_id?: string
+  outputs?: JobOutput[]
+  [key: string]: unknown
 }
 
 export type Asset = {
@@ -60,7 +73,7 @@ export type Job = {
   progress: number | null
   status_message: string | null
   params: Record<string, unknown>
-  result: Record<string, unknown> | null
+  result: JobResult | null
   error_message: string | null
   error_detail: string | null
   created_at: string

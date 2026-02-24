@@ -1,24 +1,16 @@
 from __future__ import annotations
 
+import base64
 import mimetypes
 import queue
 import threading
+import urllib.request
 import uuid
-from pathlib import Path
 from typing import Any
 
 from creativeai_studio.api.deps import AppContext
 from creativeai_studio.media_meta import read_image_size
 from creativeai_studio.model_catalog import get_model
-
-
-def _load_vertex_credentials(sa_path: str):
-    from google.oauth2.service_account import Credentials
-
-    return Credentials.from_service_account_file(
-        sa_path,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
 
 
 class JobRunner:
@@ -27,14 +19,13 @@ class JobRunner:
         ctx: AppContext,
         provider: Any = None,
         *,
-        gcs: Any | None = None,
-        vertex_credentials_factory: Any | None = None,
+        providers: dict[str, Any] | None = None,
         concurrency: int = 1,
     ):
         self._ctx = ctx
-        self._provider = provider
-        self._gcs = gcs
-        self._vertex_credentials_factory = vertex_credentials_factory or _load_vertex_credentials
+        self._providers: dict[str, Any] = dict(providers or {})
+        if provider is not None and "google" not in self._providers:
+            self._providers["google"] = provider
         self._q: queue.Queue[str] = queue.Queue()
         self._started = False
         self._lock = threading.Lock()
@@ -85,8 +76,6 @@ class JobRunner:
 
         self._ctx.jobs.set_status(job_id, "running")
         try:
-            if self._provider is None:
-                raise RuntimeError("Provider not configured")
             result = self._dispatch(job)
             self._ctx.jobs.set_succeeded(job_id, result_dict=result or {})
         except Exception as e:  # noqa: BLE001
@@ -98,101 +87,96 @@ class JobRunner:
             return self._run_image_generate(job)
         if job_type == "video.generate":
             return self._run_video_generate(job)
-        if job_type == "video.extend":
-            return self._run_video_extend(job)
         raise NotImplementedError(f"Unsupported job_type: {job_type}")
 
     def _run_image_generate(self, job: dict[str, Any]) -> dict[str, Any]:
         model = get_model(str(job.get("model_id") or ""))
         if model is None:
             raise RuntimeError("Unknown model_id")
+        provider = self._get_provider_for_model(model)
+        if provider is None:
+            raise RuntimeError("Provider not configured")
         provider_models = model.get("provider_models") or {}
         provider_model = (
             provider_models.get("image_generate") or model.get("provider_model") or model.get("model_id")
         )
-        provider_model_edit = (
-            provider_models.get("image_edit") or model.get("provider_model_edit") or provider_model
-        )
 
         params = job.get("params") or {}
 
-        client = self._make_client(job)
+        client = self._make_client(job=job, model=model, provider=provider)
 
         aspect_ratio = str(params.get("aspect_ratio") or "1:1")
         prompt = str(params.get("prompt") or "")
+        watermark = params.get("watermark")
+        sequential_image_generation = params.get("sequential_image_generation")
+        sequential_image_generation_options = params.get("sequential_image_generation_options")
+        ref_ids = self._get_reference_image_asset_ids(params)
+        refs = [self._load_image_bytes(ref_id) for ref_id in ref_ids]
+        refs = [r for r in refs if r is not None]
 
-        if params.get("reference_image_asset_id"):
-            ref_id = str(params["reference_image_asset_id"])
-            ref = self._ctx.assets.get(ref_id)
-            if not ref:
-                raise RuntimeError("Reference image asset not found")
-            ref_path = self._ctx.asset_store.resolve(ref["file_path"])
-            ref_bytes = ref_path.read_bytes()
-            ref_mime = str(ref.get("mime_type") or "image/png")
-            if job.get("auth_mode") == "vertex":
-                out = self._provider.edit_image(
-                    provider_model=str(provider_model_edit),
-                    prompt=prompt,
-                    reference_image_bytes=ref_bytes,
-                    reference_image_mime_type=ref_mime,
-                    aspect_ratio=aspect_ratio,
-                    client=client,
-                )
-            else:
-                out = self._provider.generate_image(
-                    provider_model=str(provider_model),
-                    prompt=prompt,
-                    aspect_ratio=aspect_ratio,
-                    image_size=str(params.get("image_size") or "1k"),
-                    reference_image_bytes=ref_bytes,
-                    reference_image_mime_type=ref_mime,
-                    client=client,
-                )
-        else:
-            out = self._provider.generate_image(
+        if refs:
+            first_ref = refs[0]
+            out = provider.generate_image(
                 provider_model=str(provider_model),
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
                 image_size=str(params.get("image_size") or "1k"),
+                reference_image_bytes=first_ref["bytes"],
+                reference_image_mime_type=str(first_ref.get("mime_type") or "image/png"),
+                reference_images=refs,
+                sequential_image_generation=(
+                    str(sequential_image_generation)
+                    if sequential_image_generation is not None
+                    else None
+                ),
+                sequential_image_generation_options=(
+                    dict(sequential_image_generation_options)
+                    if isinstance(sequential_image_generation_options, dict)
+                    else None
+                ),
+                watermark=bool(watermark) if watermark is not None else None,
+                client=client,
+            )
+        else:
+            out = provider.generate_image(
+                provider_model=str(provider_model),
+                prompt=prompt,
+                aspect_ratio=aspect_ratio,
+                image_size=str(params.get("image_size") or "1k"),
+                sequential_image_generation=(
+                    str(sequential_image_generation) if sequential_image_generation is not None else None
+                ),
+                sequential_image_generation_options=(
+                    dict(sequential_image_generation_options)
+                    if isinstance(sequential_image_generation_options, dict)
+                    else None
+                ),
+                watermark=bool(watermark) if watermark is not None else None,
                 client=client,
             )
 
-        mime_type = str(out.get("mime_type") or "application/octet-stream")
-        ext = mimetypes.guess_extension(mime_type) or ".bin"
-        asset_id = uuid.uuid4().hex
-        stored = self._ctx.asset_store.save_generated(asset_id=asset_id, ext=ext, content=out["bytes"])
-        width, height = read_image_size(stored.abs_path)
-
-        self._ctx.assets.insert_generated(
-            asset_id=asset_id,
-            media_type="image",
-            file_path=stored.rel_path,
-            mime_type=mime_type,
-            size_bytes=stored.size_bytes,
-            source_job_id=str(job["id"]),
-            width=width,
-            height=height,
-        )
-        self._ctx.job_assets.add(job_id=str(job["id"]), asset_id=asset_id, role="output")
-
-        return {"output_asset_id": asset_id}
+        outputs = self._store_image_outputs(job_id=str(job["id"]), out=out)
+        return self._result_with_outputs(outputs)
 
     def _run_video_generate(self, job: dict[str, Any]) -> dict[str, Any]:
         model = get_model(str(job.get("model_id") or ""))
         if model is None:
             raise RuntimeError("Unknown model_id")
+        provider = self._get_provider_for_model(model)
+        if provider is None:
+            raise RuntimeError("Provider not configured")
         provider_models = model.get("provider_models") or {}
         provider_model = (
             provider_models.get("video_generate") or model.get("provider_model") or model.get("model_id")
         )
 
         params = job.get("params") or {}
-        client = self._make_client(job)
+        client = self._make_client(job=job, model=model, provider=provider)
 
         start_image = self._load_image_bytes(params.get("start_image_asset_id"))
         end_image = self._load_image_bytes(params.get("end_image_asset_id"))
 
-        out = self._provider.generate_video(
+        out = provider.generate_video(
             provider_model=str(provider_model),
             prompt=str(params.get("prompt") or ""),
             duration_seconds=int(params.get("duration_seconds") or 5),
@@ -220,80 +204,9 @@ class JobRunner:
             source_job_id=str(job["id"]),
         )
         self._ctx.job_assets.add(job_id=str(job["id"]), asset_id=asset_id, role="output")
-        return {"output_asset_id": asset_id}
-
-    def _run_video_extend(self, job: dict[str, Any]) -> dict[str, Any]:
-        if job.get("auth_mode") != "vertex":
-            raise RuntimeError("video.extend requires vertex auth")
-
-        model = get_model(str(job.get("model_id") or ""))
-        if model is None:
-            raise RuntimeError("Unknown model_id")
-        provider_models = model.get("provider_models") or {}
-        provider_model = (
-            provider_models.get("video_extend") or model.get("provider_model") or model.get("model_id")
+        return self._result_with_outputs(
+            [{"asset_id": asset_id, "media_type": "video", "role": "output", "index": 0}]
         )
-
-        params = job.get("params") or {}
-        input_asset_id = str(params.get("input_video_asset_id") or "")
-        if not input_asset_id:
-            raise RuntimeError("input_video_asset_id is required")
-
-        bucket = self._ctx.settings.get_str("vertex_gcs_bucket")
-        if not bucket:
-            raise RuntimeError("vertex_gcs_bucket not configured")
-
-        parent = self._ctx.assets.get(input_asset_id)
-        if not parent:
-            raise RuntimeError("Input video asset not found")
-        input_path = self._ctx.asset_store.resolve(parent["file_path"])
-
-        credentials, project, location = self._get_vertex_creds_and_config()
-        client = self._provider.make_client_vertex(credentials=credentials, project=project, location=location)
-
-        gcs = self._gcs
-        if gcs is None:
-            from creativeai_studio.gcs import GcsClient
-
-            gcs = GcsClient(project=project, credentials=credentials)
-
-        input_ext = Path(input_path).suffix or ".mp4"
-        input_uri = gcs.upload_file(
-            bucket=bucket,
-            object_name=f"creativeai-studio/{job['id']}/input{input_ext}",
-            local_path=input_path,
-        )
-
-        out = self._provider.extend_video(
-            provider_model=str(provider_model),
-            input_video_uri=input_uri,
-            extend_seconds=int(params.get("extend_seconds") or 5),
-            prompt=str(params.get("prompt") or "") or None,
-            aspect_ratio=str(params.get("aspect_ratio") or "") or None,
-            output_gcs_uri=f"gs://{bucket}/creativeai-studio/{job['id']}/",
-            client=client,
-        )
-
-        mime_type = str(out.get("mime_type") or "video/mp4")
-        ext = mimetypes.guess_extension(mime_type) or ".mp4"
-        asset_id = uuid.uuid4().hex
-
-        if "bytes" in out:
-            stored = self._ctx.asset_store.save_generated(asset_id=asset_id, ext=ext, content=out["bytes"])
-        else:
-            stored = self._download_video_output(asset_id=asset_id, ext=ext, out=out, gcs=gcs)
-
-        self._ctx.assets.insert_generated(
-            asset_id=asset_id,
-            media_type="video",
-            file_path=stored.rel_path,
-            mime_type=mime_type,
-            size_bytes=stored.size_bytes,
-            source_job_id=str(job["id"]),
-            parent_asset_id=input_asset_id,
-        )
-        self._ctx.job_assets.add(job_id=str(job["id"]), asset_id=asset_id, role="output")
-        return {"output_asset_id": asset_id}
 
     def _load_image_bytes(self, asset_id: Any) -> dict[str, Any] | None:
         if not asset_id:
@@ -304,26 +217,18 @@ class JobRunner:
         p = self._ctx.asset_store.resolve(a["file_path"])
         return {"bytes": p.read_bytes(), "mime_type": a.get("mime_type")}
 
-    def _make_client(self, job: dict[str, Any]):
+    def _make_client(self, *, job: dict[str, Any], model: dict[str, Any], provider: Any):
+        provider_id = str(model.get("provider_id") or "google")
         auth_mode = job.get("auth_mode")
         if auth_mode == "api_key":
-            api_key = self._ctx.settings.get_str("google_api_key")
+            setting_key = self._api_key_setting_for_provider(provider_id)
+            api_key = self._ctx.settings.get_str(setting_key)
             if not api_key:
-                raise RuntimeError("google_api_key not configured")
-            return self._provider.make_client_api_key(api_key)
-        if auth_mode == "vertex":
-            credentials, project, location = self._get_vertex_creds_and_config()
-            return self._provider.make_client_vertex(credentials=credentials, project=project, location=location)
+                raise RuntimeError(f"{setting_key} not configured")
+            if not hasattr(provider, "make_client_api_key"):
+                raise RuntimeError("Provider does not support api_key auth")
+            return provider.make_client_api_key(api_key)
         raise RuntimeError("Unknown auth mode")
-
-    def _get_vertex_creds_and_config(self):
-        sa_path = self._ctx.settings.get_str("vertex_sa_path")
-        project = self._ctx.settings.get_str("vertex_project_id")
-        location = self._ctx.settings.get_str("vertex_location")
-        if not sa_path or not project or not location:
-            raise RuntimeError("Vertex settings not configured")
-        credentials = self._vertex_credentials_factory(sa_path)
-        return credentials, project, location
 
     def _download_video_output(self, *, asset_id: str, ext: str, out: dict[str, Any], gcs: Any | None = None):
         uri = out.get("gcs_uri")
@@ -344,3 +249,89 @@ class JobRunner:
             raise RuntimeError("Unsupported video uri")
 
         return self._ctx.asset_store.save_generated_from_file(asset_id=asset_id, ext=ext, src_path=tmp_path)
+
+    def _get_provider_for_model(self, model: dict[str, Any]) -> Any | None:
+        provider_id = str(model.get("provider_id") or "google")
+        return self._providers.get(provider_id)
+
+    @staticmethod
+    def _api_key_setting_for_provider(provider_id: str) -> str:
+        if provider_id == "google":
+            return "google_api_key"
+        if provider_id == "volcengine_ark":
+            return "ark_api_key"
+        raise RuntimeError(f"Unsupported provider_id for api_key auth: {provider_id}")
+
+    @staticmethod
+    def _get_reference_image_asset_ids(params: dict[str, Any]) -> list[str]:
+        ids: list[str] = []
+        multi = params.get("reference_image_asset_ids")
+        if isinstance(multi, list):
+            for item in multi:
+                value = str(item or "").strip()
+                if value:
+                    ids.append(value)
+        single = str(params.get("reference_image_asset_id") or "").strip()
+        if single and single not in ids:
+            ids.insert(0, single)
+        return ids
+
+    def _store_image_outputs(self, *, job_id: str, out: dict[str, Any]) -> list[dict[str, Any]]:
+        raw_items = out.get("items")
+        items: list[dict[str, Any]]
+        if isinstance(raw_items, list):
+            items = [dict(item) if isinstance(item, dict) else {"value": item} for item in raw_items]
+        else:
+            items = [out]
+
+        outputs: list[dict[str, Any]] = []
+        for idx, item in enumerate(items):
+            asset_id = self._store_image_output_asset(job_id=job_id, item=item)
+            outputs.append({"asset_id": asset_id, "media_type": "image", "role": "output", "index": idx})
+        return outputs
+
+    def _store_image_output_asset(self, *, job_id: str, item: dict[str, Any]) -> str:
+        content, mime_type = self._read_image_output_bytes(item)
+        ext = mimetypes.guess_extension(mime_type) or ".bin"
+        asset_id = uuid.uuid4().hex
+        stored = self._ctx.asset_store.save_generated(asset_id=asset_id, ext=ext, content=content)
+        width, height = read_image_size(stored.abs_path)
+
+        self._ctx.assets.insert_generated(
+            asset_id=asset_id,
+            media_type="image",
+            file_path=stored.rel_path,
+            mime_type=mime_type,
+            size_bytes=stored.size_bytes,
+            source_job_id=job_id,
+            width=width,
+            height=height,
+        )
+        self._ctx.job_assets.add(job_id=job_id, asset_id=asset_id, role="output")
+        return asset_id
+
+    @staticmethod
+    def _read_image_output_bytes(item: dict[str, Any]) -> tuple[bytes, str]:
+        raw = item.get("bytes")
+        if isinstance(raw, (bytes, bytearray, memoryview)):
+            return bytes(raw), str(item.get("mime_type") or "image/png")
+
+        b64_json = item.get("b64_json")
+        if isinstance(b64_json, str) and b64_json:
+            return base64.b64decode(b64_json), str(item.get("mime_type") or "image/png")
+
+        url = item.get("url")
+        if isinstance(url, str) and url:
+            with urllib.request.urlopen(url) as resp:  # noqa: S310
+                content = resp.read()
+                mime_type = resp.headers.get_content_type() or "image/png"
+            return content, mime_type
+
+        raise RuntimeError("Unsupported image output item")
+
+    @staticmethod
+    def _result_with_outputs(outputs: list[dict[str, Any]]) -> dict[str, Any]:
+        out: dict[str, Any] = {"outputs": outputs}
+        if outputs:
+            out["output_asset_id"] = outputs[0]["asset_id"]
+        return out

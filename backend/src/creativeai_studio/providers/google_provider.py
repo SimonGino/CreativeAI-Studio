@@ -5,15 +5,11 @@ from typing import Any, Callable
 
 
 class GoogleProvider:
-    def __init__(self, client_factory: Callable[..., Any], gcs: Any | None):
+    def __init__(self, client_factory: Callable[..., Any]):
         self._client_factory = client_factory
-        self._gcs = gcs
 
     def make_client_api_key(self, api_key: str):
         return self._client_factory(api_key=api_key)
-
-    def make_client_vertex(self, *, credentials: Any, project: str, location: str):
-        return self._client_factory(vertexai=True, project=project, location=location, credentials=credentials)
 
     def generate_image(
         self,
@@ -24,8 +20,17 @@ class GoogleProvider:
         *,
         reference_image_bytes: bytes | None = None,
         reference_image_mime_type: str | None = None,
+        reference_images: list[dict[str, Any]] | None = None,
+        sequential_image_generation: str | None = None,  # noqa: ARG002
+        sequential_image_generation_options: dict[str, Any] | None = None,  # noqa: ARG002
+        watermark: bool | None = None,  # noqa: ARG002
         client: Any | None = None,
     ) -> dict[str, Any]:
+        image_size = self._normalize_image_size(image_size)
+        if reference_images and reference_image_bytes is None:
+            first = reference_images[0]
+            reference_image_bytes = first.get("bytes")
+            reference_image_mime_type = first.get("mime_type")
         if reference_image_bytes is not None and not provider_model.startswith("gemini"):
             raise RuntimeError("reference_image not supported for provider model")
         if provider_model.startswith("gemini"):
@@ -95,39 +100,14 @@ class GoogleProvider:
 
         raise RuntimeError("No image output")
 
-    def edit_image(
-        self,
-        provider_model: str,
-        prompt: str,
-        reference_image_bytes: bytes,
-        reference_image_mime_type: str,
-        aspect_ratio: str,
-        *,
-        client: Any | None = None,
-    ) -> dict[str, Any]:
-        from google.genai import types
-
-        client = client or self._client_factory()
-
-        raw = types.RawReferenceImage(
-            reference_id=1,
-            reference_image=types.Image(
-                image_bytes=reference_image_bytes,
-                mime_type=reference_image_mime_type,
-            ),
-        )
-        mask = types.MaskReferenceImage(
-            reference_id=2,
-            config=types.MaskReferenceConfig(mask_mode=types.MaskReferenceMode.MASK_MODE_BACKGROUND),
-        )
-        resp = client.models.edit_image(
-            model=provider_model,
-            prompt=prompt,
-            reference_images=[raw, mask],
-            config=types.EditImageConfig(number_of_images=1, aspect_ratio=aspect_ratio),
-        )
-        img = resp.generated_images[0].image
-        return {"bytes": img.image_bytes, "mime_type": img.mime_type}
+    @staticmethod
+    def _normalize_image_size(image_size: str) -> str:
+        v = str(image_size or "").strip()
+        if not v:
+            return v
+        if v.lower() in {"1k", "2k", "4k"}:
+            return v.upper()
+        return v
 
     def generate_video(
         self,
@@ -165,51 +145,6 @@ class GoogleProvider:
         while not operation.done:
             if polls >= max_polls:
                 raise TimeoutError("Video generation timed out")
-            if poll_interval_seconds:
-                time.sleep(poll_interval_seconds)
-            operation = client.operations.get(operation)
-            polls += 1
-
-        video = operation.result.generated_videos[0].video
-        video_bytes = getattr(video, "video_bytes", None)
-        if isinstance(video_bytes, (bytes, bytearray, memoryview)):
-            return {"bytes": bytes(video_bytes), "mime_type": getattr(video, "mime_type", "video/mp4")}
-        if getattr(video, "uri", None):
-            return {"gcs_uri": video.uri, "mime_type": getattr(video, "mime_type", "video/mp4")}
-        raise RuntimeError("No video output")
-
-    def extend_video(
-        self,
-        provider_model: str,
-        input_video_uri: str,
-        extend_seconds: int,
-        *,
-        prompt: str | None = None,
-        aspect_ratio: str | None = None,
-        output_gcs_uri: str | None = None,
-        client: Any | None = None,
-        poll_interval_seconds: float = 10.0,
-        max_polls: int = 240,
-    ) -> dict[str, Any]:
-        from google.genai import types
-
-        client = client or self._client_factory()
-
-        source = types.GenerateVideosSource(video=types.Video(uri=input_video_uri))
-        if prompt:
-            source.prompt = prompt
-
-        config = types.GenerateVideosConfig(duration_seconds=int(extend_seconds))
-        if aspect_ratio:
-            config.aspect_ratio = aspect_ratio
-        if output_gcs_uri:
-            config.output_gcs_uri = output_gcs_uri
-
-        operation = client.models.generate_videos(model=provider_model, source=source, config=config)
-        polls = 0
-        while not operation.done:
-            if polls >= max_polls:
-                raise TimeoutError("Video extend timed out")
             if poll_interval_seconds:
                 time.sleep(poll_interval_seconds)
             operation = client.operations.get(operation)

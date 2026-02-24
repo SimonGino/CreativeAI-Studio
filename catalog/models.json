@@ -4,19 +4,85 @@
     "display_name": "Nano Banana Pro",
     "provider_id": "google",
     "provider_models": {
-      "image_generate": "gemini-3-pro-image-preview",
-      "image_edit": "imagen-3.0-capability-001"
+      "image_generate": "gemini-3-pro-image-preview"
     },
     "media_type": "image",
-    "auth_support": ["api_key", "vertex"],
+    "auth_support": ["api_key"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": ["1k", "2k", "4k"],
+    "aspect_ratios": ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
+    "reference_image_supported": true,
+    "max_reference_images": 1,
+    "sequential_image_generation_supported": false,
+    "max_output_images": 1,
+    "start_end_image_supported": false,
+    "extend_supported": false,
+    "duration_seconds": null
+  },
+  {
+    "model_id": "nano-banana",
+    "display_name": "Nano Banana",
+    "provider_id": "google",
+    "provider_models": {
+      "image_generate": "gemini-2.5-flash-image"
+    },
+    "media_type": "image",
+    "auth_support": ["api_key"],
     "auth_required": null,
     "prompt_max_chars": 4000,
     "resolution_presets": ["1k", "2k"],
     "aspect_ratios": ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
     "reference_image_supported": true,
+    "max_reference_images": 1,
+    "sequential_image_generation_supported": false,
+    "max_output_images": 1,
     "start_end_image_supported": false,
     "extend_supported": false,
-    "extend_requires_vertex": false,
+    "duration_seconds": null
+  },
+  {
+    "model_id": "doubao-seedream-4-5-251128",
+    "display_name": "Seedream-4.5",
+    "provider_id": "volcengine_ark",
+    "provider_models": {
+      "image_generate": "doubao-seedream-4-5-251128"
+    },
+    "media_type": "image",
+    "auth_support": ["api_key"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": ["2k", "4k"],
+    "aspect_ratios": ["auto", "1:1"],
+    "reference_image_supported": true,
+    "max_reference_images": 14,
+    "sequential_image_generation_supported": true,
+    "max_output_images": 15,
+    "max_total_images": 15,
+    "start_end_image_supported": false,
+    "extend_supported": false,
+    "duration_seconds": null
+  },
+  {
+    "model_id": "doubao-seedream-4-0-250828",
+    "display_name": "Seedream-4.0",
+    "provider_id": "volcengine_ark",
+    "provider_models": {
+      "image_generate": "doubao-seedream-4-0-250828"
+    },
+    "media_type": "image",
+    "auth_support": ["api_key"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": ["1k", "2k", "4k"],
+    "aspect_ratios": ["auto", "1:1"],
+    "reference_image_supported": true,
+    "max_reference_images": 14,
+    "sequential_image_generation_supported": true,
+    "max_output_images": 15,
+    "max_total_images": 15,
+    "start_end_image_supported": false,
+    "extend_supported": false,
     "duration_seconds": null
   },
   {
@@ -24,19 +90,17 @@
     "display_name": "Veo 3.1",
     "provider_id": "google",
     "provider_models": {
-      "video_generate": "veo-3.1",
-      "video_extend": "veo-3.1"
+      "video_generate": "veo-3.1"
     },
     "media_type": "video",
-    "auth_support": ["api_key", "vertex"],
+    "auth_support": ["api_key"],
     "auth_required": null,
     "prompt_max_chars": 4000,
     "resolution_presets": null,
     "aspect_ratios": ["auto", "16:9", "9:16", "1:1"],
     "reference_image_supported": false,
     "start_end_image_supported": true,
-    "extend_supported": true,
-    "extend_requires_vertex": true,
+    "extend_supported": false,
     "duration_seconds": [5, 10]
   },
   {
@@ -44,19 +108,17 @@
     "display_name": "Veo 3.1 Fast",
     "provider_id": "google",
     "provider_models": {
-      "video_generate": "veo-3.1-fast",
-      "video_extend": "veo-3.1-fast"
+      "video_generate": "veo-3.1-fast"
     },
     "media_type": "video",
-    "auth_support": ["api_key", "vertex"],
+    "auth_support": ["api_key"],
     "auth_required": null,
     "prompt_max_chars": 4000,
     "resolution_presets": null,
     "aspect_ratios": ["auto", "16:9", "9:16", "1:1"],
     "reference_image_supported": false,
     "start_end_image_supported": true,
-    "extend_supported": true,
-    "extend_requires_vertex": true,
+    "extend_supported": false,
     "duration_seconds": [5, 10]
   }
 ]

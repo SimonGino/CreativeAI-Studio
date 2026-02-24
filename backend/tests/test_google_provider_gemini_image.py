@@ -16,7 +16,7 @@ def test_generate_image_with_gemini_returns_bytes():
             )
         ]
     )
-    p = GoogleProvider(client_factory=lambda **_: fake_client, gcs=None)
+    p = GoogleProvider(client_factory=lambda **_: fake_client)
     out = p.generate_image(
         provider_model="gemini-3-pro-image-preview",
         prompt="x",
@@ -26,5 +26,6 @@ def test_generate_image_with_gemini_returns_bytes():
     )
     _, kwargs = fake_client.models.generate_content.call_args
     assert kwargs["config"].image_config.output_mime_type is None
+    assert kwargs["config"].image_config.image_size == "1K"
     assert out["mime_type"] == "image/png"
     assert out["bytes"] == b"img"

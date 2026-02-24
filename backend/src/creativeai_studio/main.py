@@ -18,6 +18,7 @@ from creativeai_studio.repositories.job_assets_repo import JobAssetsRepo
 from creativeai_studio.repositories.jobs_repo import JobsRepo
 from creativeai_studio.repositories.settings_repo import SettingsRepo
 from creativeai_studio.providers.google_provider import GoogleProvider
+from creativeai_studio.providers.volcengine_ark_provider import VolcengineArkProvider
 from creativeai_studio.runner import JobRunner
 
 
@@ -38,14 +39,23 @@ def create_app(cfg: AppConfig | None = None) -> FastAPI:
         asset_store=AssetStore(cfg.data_dir),
     )
 
+    providers: dict[str, object] = {}
+
     try:
         from google import genai
 
-        provider = GoogleProvider(client_factory=genai.Client, gcs=None)
+        providers["google"] = GoogleProvider(client_factory=genai.Client)
     except Exception:  # noqa: BLE001
-        provider = None
+        pass
 
-    runner = JobRunner(ctx, provider=provider, concurrency=1)
+    try:
+        from openai import OpenAI
+
+        providers["volcengine_ark"] = VolcengineArkProvider(client_factory=OpenAI)
+    except Exception:  # noqa: BLE001
+        pass
+
+    runner = JobRunner(ctx, providers=providers, concurrency=1)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # noqa: ARG001

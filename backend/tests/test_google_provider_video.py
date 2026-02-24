@@ -12,7 +12,7 @@ def test_generate_video_polls_and_returns_uri():
     op1.result = Mock(generated_videos=[Mock(video=Mock(uri="gs://b/out.mp4", mime_type="video/mp4"))])
     fake_client.operations.get.return_value = op1
 
-    p = GoogleProvider(client_factory=lambda **_: fake_client, gcs=None)
+    p = GoogleProvider(client_factory=lambda **_: fake_client)
     out = p.generate_video(
         provider_model="veo-3.1",
         prompt="x",
@@ -22,4 +22,3 @@ def test_generate_video_polls_and_returns_uri():
         poll_interval_seconds=0,
     )
     assert out["gcs_uri"] == "gs://b/out.mp4"
-

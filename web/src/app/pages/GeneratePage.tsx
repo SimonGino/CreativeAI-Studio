@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { api } from '../api/client'
-import type { Job, ModelInfo, Settings } from '../api/types'
+import type { Job, JobOutput, ModelInfo, Settings } from '../api/types'
 import { CardSelect } from '../components/CardSelect'
 import { ImageAssetPickerModal } from '../components/ImageAssetPickerModal'
 import { ModelSelect } from '../components/ModelSelect'
@@ -19,17 +19,16 @@ export function GeneratePage() {
   const [error, setError] = useState<string | null>(null)
 
   const defaultAuthMode = settings?.default_auth_mode || 'api_key'
-  const vertexReady =
-    !!settings?.vertex_sa_present && !!settings?.vertex_project_id && !!settings?.vertex_location
 
   const [modelId, setModelId] = useState<string>('')
   const [prompt, setPrompt] = useState<string>('')
   const [aspectRatio, setAspectRatio] = useState<string>('auto')
 
   const [imageSize, setImageSize] = useState<string>('1k')
+  const [outputImageCount, setOutputImageCount] = useState<number>(1)
   const [durationSeconds, setDurationSeconds] = useState<number>(5)
 
-  const [referenceAssetId, setReferenceAssetId] = useState<string | null>(null)
+  const [referenceAssetIds, setReferenceAssetIds] = useState<string[]>([])
   const referenceFileRef = useRef<HTMLInputElement | null>(null)
   const [referencePickerOpen, setReferencePickerOpen] = useState(false)
   const [startAssetId, setStartAssetId] = useState<string | null>(null)
@@ -69,6 +68,25 @@ export function GeneratePage() {
   const selectedModel = useMemo(() => {
     return filteredModels.find((m) => m.model_id === modelId) || null
   }, [filteredModels, modelId])
+
+  const selectedProviderId = selectedModel?.provider_id || 'google'
+  const modelAuthSupport = selectedModel?.auth_support || ['api_key']
+  const effectiveAuthMode = modelAuthSupport.includes(defaultAuthMode)
+    ? defaultAuthMode
+    : (modelAuthSupport[0] || defaultAuthMode)
+  const supportsSequentialImageGeneration =
+    jobType === 'image.generate' && !!selectedModel?.sequential_image_generation_supported
+  const maxOutputImagesByModel = Math.max(1, Math.min(5, selectedModel?.max_output_images || 1))
+  const maxOutputImagesByTotalLimit =
+    selectedModel?.max_total_images != null
+      ? Math.max(1, Math.min(5, selectedModel.max_total_images - referenceAssetIds.length))
+      : maxOutputImagesByModel
+  const maxOutputImageCount = Math.max(1, Math.min(maxOutputImagesByModel, maxOutputImagesByTotalLimit))
+  const maxReferenceImages = Math.max(1, selectedModel?.max_reference_images || 1)
+
+  useEffect(() => {
+    setOutputImageCount((prev) => Math.max(1, Math.min(prev, maxOutputImageCount)))
+  }, [maxOutputImageCount])
 
   useEffect(() => {
     if (filteredModels.length === 0) return
@@ -110,6 +128,17 @@ export function GeneratePage() {
     }
   }
 
+  function appendReferenceAssetId(nextId: string) {
+    setReferenceAssetIds((prev) => {
+      if (prev.includes(nextId)) return prev
+      if (prev.length >= maxReferenceImages) {
+        setError(`当前模型最多支持 ${maxReferenceImages} 张参考图。`)
+        return prev
+      }
+      return [...prev, nextId]
+    })
+  }
+
   async function onCreate() {
     setError(null)
     setCreating(true)
@@ -117,20 +146,26 @@ export function GeneratePage() {
       if (!settings) {
         throw new Error('设置未加载，请稍候重试。')
       }
-      if (defaultAuthMode === 'api_key' && !settings?.google_api_key_present) {
-        throw new Error('默认鉴权为 API Key：请先在“设置”里保存 Google API Key。')
+      if (effectiveAuthMode === 'api_key' && selectedProviderId === 'google' && !settings.google_api_key_present) {
+        throw new Error('该模型使用 Google API Key：请先在“设置”里保存 Google API Key。')
       }
-      if (defaultAuthMode === 'vertex' && !vertexReady) {
-        throw new Error('默认鉴权为 Vertex：请先在“设置”里上传 Service Account JSON，并填写 project/location。')
+      if (effectiveAuthMode === 'api_key' && selectedProviderId === 'volcengine_ark' && !settings.ark_api_key_present) {
+        throw new Error('该模型使用 ARK API Key：请先在“设置”里保存 ARK API Key。')
       }
-
       const params: Record<string, unknown> = {
         prompt,
         aspect_ratio: aspectRatio,
       }
       if (jobType === 'image.generate') {
         params.image_size = imageSize
-        if (referenceAssetId) params.reference_image_asset_id = referenceAssetId
+        if (selectedProviderId === 'volcengine_ark') params.watermark = false
+        if (referenceAssetIds.length > 0) params.reference_image_asset_ids = referenceAssetIds
+        if (supportsSequentialImageGeneration && outputImageCount > 1) {
+          params.sequential_image_generation = 'auto'
+          params.sequential_image_generation_options = { max_images: outputImageCount }
+        } else {
+          params.sequential_image_generation = 'disabled'
+        }
       }
       if (jobType === 'video.generate') {
         params.duration_seconds = durationSeconds
@@ -142,6 +177,7 @@ export function GeneratePage() {
         job_type: jobType,
         model_id: modelId,
         params,
+        auth: { mode: effectiveAuthMode },
       }
 
       const created = await api.createJob(payload)
@@ -153,26 +189,32 @@ export function GeneratePage() {
     }
   }
 
-  const outputAssetId = (job?.result?.output_asset_id as string | undefined) || null
-  const outputUrl = outputAssetId ? `/api/assets/${outputAssetId}/content` : null
-  const isVideoOut = outputUrl && job?.job_type?.startsWith('video')
+  const resultOutputs = Array.isArray(job?.result?.outputs)
+    ? job.result.outputs.filter((o): o is JobOutput => !!o && typeof o.asset_id === 'string')
+    : []
+  const fallbackOutputAssetId = (job?.result?.output_asset_id as string | undefined) || null
+  const normalizedOutputs =
+    resultOutputs.length > 0
+      ? resultOutputs
+      : fallbackOutputAssetId
+        ? [{ asset_id: fallbackOutputAssetId, media_type: jobType === 'video.generate' ? 'video' : 'image', index: 0 }]
+        : []
+  const primaryOutput = normalizedOutputs[0] || null
+  const outputUrl = primaryOutput ? `/api/assets/${primaryOutput.asset_id}/content` : null
+  const isVideoOut = outputUrl && (primaryOutput?.media_type === 'video' || job?.job_type?.startsWith('video'))
+  const imageOutputUrls = normalizedOutputs
+    .filter((o) => (o.media_type || 'image') === 'image')
+    .map((o) => ({ assetId: o.asset_id, url: `/api/assets/${o.asset_id}/content` }))
 
   return (
     <div className="grid2">
       <section className="panel">
-        <div className="panelHeader">
-          生成{' '}
-          {settings?.default_auth_mode ? (
-            <span className="statusPill" style={{ marginLeft: 10 }}>
-              <span className="statusDot statusDotOk" />
-              <span>默认鉴权：{settings.default_auth_mode}</span>
-            </span>
-          ) : null}
-        </div>
+        <div className="panelHeader">生成</div>
         <div className="panelBody">
           <div className="field">
             <div className="labelRow">
               <div>模型</div>
+              {selectedModel?.provider_id ? <div className="muted">{selectedModel.provider_id}</div> : null}
             </div>
             <ModelSelect
               label="模型"
@@ -207,20 +249,42 @@ export function GeneratePage() {
             </div>
 
             {jobType === 'image.generate' ? (
-              <div className="field">
-                <div className="labelRow">
-                  <div>分辨率</div>
+              <>
+                <div className="field">
+                  <div className="labelRow">
+                    <div>分辨率</div>
+                  </div>
+                  <CardSelect
+                    label="分辨率"
+                    value={imageSize}
+                    onChange={(v) => setImageSize(v)}
+                    options={(selectedModel?.resolution_presets || ['1k']).map((r) => ({
+                      value: r,
+                      label: r,
+                    }))}
+                  />
                 </div>
-                <CardSelect
-                  label="分辨率"
-                  value={imageSize}
-                  onChange={(v) => setImageSize(v)}
-                  options={(selectedModel?.resolution_presets || ['1k']).map((r) => ({
-                    value: r,
-                    label: r,
-                  }))}
-                />
-              </div>
+                <div className="field">
+                  <div className="labelRow">
+                    <div>输出张数</div>
+                    <div className="muted">
+                      {supportsSequentialImageGeneration ? `1-${maxOutputImageCount}` : '仅 1 张'}
+                    </div>
+                  </div>
+                  <CardSelect
+                    label="输出张数"
+                    value={String(outputImageCount)}
+                    onChange={(v) => setOutputImageCount(Number(v))}
+                    options={Array.from(
+                      { length: supportsSequentialImageGeneration ? maxOutputImageCount : 1 },
+                      (_, i) => String(i + 1),
+                    ).map((n) => ({
+                      value: n,
+                      label: `${n} 张`,
+                    }))}
+                  />
+                </div>
+              </>
             ) : null}
 
             {jobType === 'video.generate' ? (
@@ -245,6 +309,10 @@ export function GeneratePage() {
             <div className="field">
               <div className="labelRow">
                 <div>参考图（可选）</div>
+                <div className="muted">
+                  最多 {maxReferenceImages} 张
+                  {selectedModel?.max_total_images != null ? ` · 输入+输出 ≤ ${selectedModel.max_total_images}` : ''}
+                </div>
               </div>
 
               <div className="row">
@@ -267,46 +335,70 @@ export function GeneratePage() {
                 style={{ display: 'none' }}
                 onChange={(e) => {
                   const f = e.target.files?.[0]
-                  if (f) uploadAndSet(f, setReferenceAssetId, 'image')
+                  if (f) {
+                    uploadAndSet(
+                      f,
+                      (id) => {
+                        if (id) appendReferenceAssetId(id)
+                      },
+                      'image',
+                    )
+                  }
                   e.currentTarget.value = ''
                 }}
               />
 
-              {referenceAssetId ? (
-                <div className="assetInlinePreview" style={{ marginTop: 10 }}>
-                  <img
-                    className="assetInlineThumb"
-                    src={`/api/assets/${referenceAssetId}/content`}
-                    alt="reference"
-                    loading="lazy"
-                  />
-                  <div className="assetInlineMeta">
-                    <div className="assetInlineId">{referenceAssetId}</div>
-                    <div className="muted">已选择参考图</div>
-                  </div>
-                  <button type="button" onClick={() => setReferenceAssetId(null)} style={{ flex: '0 0 auto' }}>
-                    清除
-                  </button>
-                </div>
-              ) : (
+              {referenceAssetIds.length === 0 ? (
                 <div className="muted">未选择参考图</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+                  {referenceAssetIds.map((refId, idx) => (
+                    <div key={refId} className="assetInlinePreview">
+                      <img
+                        className="assetInlineThumb"
+                        src={`/api/assets/${refId}/content`}
+                        alt={`reference-${idx + 1}`}
+                        loading="lazy"
+                      />
+                      <div className="assetInlineMeta">
+                        <div className="assetInlineId">{refId}</div>
+                        <div className="muted">参考图 #{idx + 1}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setReferenceAssetIds((prev) => prev.filter((id) => id !== refId))}
+                        style={{ flex: '0 0 auto' }}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
+                  <div className="row">
+                    <button type="button" onClick={() => setReferenceAssetIds([])}>
+                      清空参考图
+                    </button>
+                  </div>
+                </div>
               )}
 
               <div className="muted">
-                参考图跟随默认鉴权：{defaultAuthMode === 'vertex' ? 'Vertex（Imagen edit）' : 'API Key（Gemini 多模态）'}
+                参考图使用当前模型通道：
+                {selectedProviderId === 'volcengine_ark'
+                    ? ' ARK API Key（Doubao Seedream）'
+                    : ' Google API Key（Gemini 多模态）'}
               </div>
-              {defaultAuthMode === 'vertex' && !vertexReady ? (
+              {selectedProviderId === 'volcengine_ark' && !settings?.ark_api_key_present ? (
                 <div className="statusPill danger" style={{ marginTop: 8 }}>
                   <span className="statusDot statusDotErr" />
-                  <span>未配置 Vertex：请到“设置”完善后再使用参考图。</span>
+                  <span>未保存 ARK API Key：请到“设置”中配置。</span>
                 </div>
               ) : null}
 
               <ImageAssetPickerModal
                 open={referencePickerOpen}
                 title="选择参考图"
-                selectedAssetId={referenceAssetId}
-                onSelect={(a) => setReferenceAssetId(a.id)}
+                selectedAssetId={referenceAssetIds[referenceAssetIds.length - 1] || null}
+                onSelect={(a) => appendReferenceAssetId(a.id)}
                 onClose={() => setReferencePickerOpen(false)}
               />
             </div>
@@ -493,6 +585,24 @@ export function GeneratePage() {
             {outputUrl ? (
               isVideoOut ? (
                 <video className="previewMedia" src={outputUrl} controls />
+              ) : imageOutputUrls.length > 1 ? (
+                <div style={{ width: '100%', display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                  {imageOutputUrls.map((item, idx) => (
+                    <a key={item.assetId} href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                      <div style={{ display: 'grid', gap: 6 }}>
+                        <img
+                          className="previewMedia"
+                          src={item.url}
+                          alt={`output-${idx + 1}`}
+                          style={{ maxHeight: 220, width: '100%', objectFit: 'cover', borderRadius: 12 }}
+                        />
+                        <div className="muted" style={{ textAlign: 'center' }}>
+                          输出 #{idx + 1}
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               ) : (
                 <img className="previewMedia" src={outputUrl} alt="output" />
               )
@@ -501,10 +611,10 @@ export function GeneratePage() {
             )}
           </div>
           {outputUrl ? (
-            <div className="row">
+            <div className="row" style={{ flexWrap: 'wrap' }}>
               <a href={outputUrl} download style={{ flex: 1 }}>
                 <button type="button" style={{ width: '100%' }}>
-                  下载
+                  下载首个输出
                 </button>
               </a>
               <button
@@ -517,7 +627,7 @@ export function GeneratePage() {
                   }
                 }}
               >
-                复制链接
+                复制首图链接
               </button>
             </div>
           ) : null}

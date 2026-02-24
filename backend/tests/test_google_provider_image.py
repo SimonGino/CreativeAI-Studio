@@ -8,13 +8,14 @@ def test_generate_image_returns_bytes():
     fake_client.models.generate_images.return_value = Mock(
         generated_images=[Mock(image=Mock(image_bytes=b"img", mime_type="image/png"))]
     )
-    p = GoogleProvider(client_factory=lambda **_: fake_client, gcs=None)
+    p = GoogleProvider(client_factory=lambda **_: fake_client)
     out = p.generate_image(
         provider_model="imagen-3.0-generate-002",
         prompt="x",
         aspect_ratio="1:1",
         image_size="1k",
     )
+    _, kwargs = fake_client.models.generate_images.call_args
+    assert kwargs["config"]["image_size"] == "1K"
     assert out["mime_type"] == "image/png"
     assert out["bytes"] == b"img"
-

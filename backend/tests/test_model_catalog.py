@@ -6,4 +6,8 @@ def test_nano_banana_has_expected_provider_models():
     assert m is not None
     assert m["provider_id"] == "google"
     assert m["provider_models"]["image_generate"] == "gemini-3-pro-image-preview"
-    assert m["provider_models"]["image_edit"] == "imagen-3.0-capability-001"
+    assert "image_edit" not in (m.get("provider_models") or {})
+
+    fast = get_model("nano-banana")
+    assert fast is not None
+    assert fast["provider_models"]["image_generate"] == "gemini-2.5-flash-image"

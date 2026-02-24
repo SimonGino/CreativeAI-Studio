@@ -45,7 +45,7 @@ class _DummyClient:
 
 def test_google_provider_generate_image_with_reference_does_not_raise():
     dummy_client = _DummyClient()
-    provider = GoogleProvider(client_factory=lambda **_: dummy_client, gcs=None)
+    provider = GoogleProvider(client_factory=lambda **_: dummy_client)
 
     try:
         out = provider.generate_image(
