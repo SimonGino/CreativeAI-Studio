@@ -86,7 +86,7 @@ def cancel_job(job_id: str, ctx: AppContext = Depends(get_ctx)):
 
 
 @router.post("/{job_id}/clone")
-def clone_job(job_id: str, payload: dict | None = None, ctx: AppContext = Depends(get_ctx)):
+def clone_job(job_id: str, request: Request, payload: dict | None = None, ctx: AppContext = Depends(get_ctx)):
     src = ctx.jobs.get(job_id)
     if not src:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -105,4 +105,4 @@ def clone_job(job_id: str, payload: dict | None = None, ctx: AppContext = Depend
     if isinstance(payload.get("auth"), dict) and payload["auth"].get("mode"):
         new_payload["auth"]["mode"] = payload["auth"]["mode"]
 
-    return _create_job(payload=new_payload, ctx=ctx, runner=None)
+    return _create_job(payload=new_payload, ctx=ctx, runner=request.app.state.runner)

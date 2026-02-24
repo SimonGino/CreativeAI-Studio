@@ -174,6 +174,7 @@ export function AssetsPage() {
             <div className="assetGallery">
               {assets.map((a) => {
                 const thumbUrl = `/api/assets/${a.id}/content`
+                const videoThumbUrl = `${thumbUrl}#t=0.1`
                 const active = selected?.id === a.id
                 const sourceModelLabel = a.source_model_name || a.source_model_id
                 return (
@@ -189,12 +190,14 @@ export function AssetsPage() {
                       {a.media_type === 'image' ? (
                         <img className="assetThumbImg" src={thumbUrl} alt={a.id} loading="lazy" />
                       ) : (
-                        <div className="assetThumbPlaceholder">
-                          <div className="assetThumbPlaceholderTitle">VIDEO</div>
-                          <div className="assetThumbPlaceholderMeta">
-                            {a.duration_seconds ? `${a.duration_seconds}s` : '视频'}
-                          </div>
-                        </div>
+                        <video
+                          className="assetThumbImg"
+                          src={videoThumbUrl}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-label={`${a.id} 视频缩略图`}
+                        />
                       )}
                       <div className="assetThumbBadge">{a.media_type === 'image' ? '图片' : '视频'}</div>
                     </div>
