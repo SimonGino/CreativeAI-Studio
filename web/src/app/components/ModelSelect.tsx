@@ -10,19 +10,9 @@ type Badge = {
   tone: BadgeTone
 }
 
-function clampBadges(badges: Badge[], max: number): Badge[] {
-  if (badges.length <= max) return badges
-  return badges.slice(0, max)
-}
-
 function buildBadges(model: ModelInfo): Badge[] {
-  if (model.coming_soon) return [{ label: '即将推出', tone: 'amber' }]
-  const out: Badge[] = []
-  if (model.media_type === 'image') out.push({ label: '图像', tone: 'green' })
-  if (model.media_type === 'video') out.push({ label: '视频', tone: 'blue' })
-  if (model.model_id.includes('fast')) out.push({ label: '快速', tone: 'blue' })
-  if (model.reference_image_supported) out.push({ label: '参考图', tone: 'green' })
-  return clampBadges(out, 3)
+  if (model.coming_soon) return [{ label: '即将上线', tone: 'amber' }]
+  return []
 }
 
 function buildSubtitle(model: ModelInfo): string {
