@@ -59,9 +59,11 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="grid2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+    <div className="grid2 pageSettings" style={{ gridTemplateColumns: '1fr 1fr' }}>
       <section className="panel">
-        <div className="panelHeader">设置</div>
+        <div className="panelHeader panelHeaderStack">
+          <div className="panelTitle">设置</div>
+        </div>
         <div className="panelBody">
           {error ? (
             <div className="statusPill danger" style={{ marginBottom: 12 }}>
@@ -70,37 +72,47 @@ export function SettingsPage() {
             </div>
           ) : null}
 
-          <div className="field">
-            <div className="labelRow">
-              <div>Google API Key（可选）</div>
-              <div className="muted">{settings?.google_api_key_present ? '已保存' : '未保存'}</div>
+          <div className="formCard">
+            <div className="field" style={{ marginBottom: 0 }}>
+              <div className="labelRow">
+                <div>Google API Key（可选）</div>
+                <span className={settings?.google_api_key_present ? 'miniBadge miniBadgeOk' : 'miniBadge miniBadgeMuted'}>
+                  {settings?.google_api_key_present ? '已保存' : '未保存'}
+                </span>
+              </div>
+              <div className="muted" style={{ marginBottom: 8 }}>用于 Google 系列模型调用。</div>
+              <input
+                type="password"
+                value={googleApiKey}
+                onChange={(e) => setGoogleApiKey(e.target.value)}
+                placeholder="粘贴后保存（本机明文存储，MVP）"
+              />
             </div>
-            <input
-              type="password"
-              value={googleApiKey}
-              onChange={(e) => setGoogleApiKey(e.target.value)}
-              placeholder="粘贴后保存（本机明文存储，MVP）"
-            />
           </div>
 
-          <div className="field">
-            <div className="labelRow">
-              <div>ARK API Key（Doubao， 可选）</div>
-              <div className="muted">{settings?.ark_api_key_present ? '已保存' : '未保存'}</div>
+          <div className="formCard">
+            <div className="field" style={{ marginBottom: 0 }}>
+              <div className="labelRow">
+                <div>ARK API Key（Doubao， 可选）</div>
+                <span className={settings?.ark_api_key_present ? 'miniBadge miniBadgeOk' : 'miniBadge miniBadgeMuted'}>
+                  {settings?.ark_api_key_present ? '已保存' : '未保存'}
+                </span>
+              </div>
+              <div className="muted" style={{ marginBottom: 8 }}>用于 Volcengine ARK / 豆包模型调用。</div>
+              <input
+                type="password"
+                value={arkApiKey}
+                onChange={(e) => setArkApiKey(e.target.value)}
+                placeholder="粘贴后保存（本机明文存储，MVP）"
+              />
             </div>
-            <input
-              type="password"
-              value={arkApiKey}
-              onChange={(e) => setArkApiKey(e.target.value)}
-              placeholder="粘贴后保存（本机明文存储，MVP）"
-            />
           </div>
 
-          <div className="row" style={{ marginTop: 12 }}>
-            <button type="button" className="btnPrimary" onClick={onSave} disabled={saving}>
+          <div className="row actionBar" style={{ marginTop: 12 }}>
+            <button type="button" className="btnPrimary btnPrimaryDark" onClick={onSave} disabled={saving}>
               {saving ? '保存中…' : '保存'}
             </button>
-            <button type="button" onClick={onTest} disabled={testing}>
+            <button type="button" className="btnOutline" onClick={onTest} disabled={testing}>
               {testing ? '测试中…' : '测试连接'}
             </button>
           </div>
@@ -108,19 +120,19 @@ export function SettingsPage() {
       </section>
 
       <section className="panel">
-        <div className="panelHeader">状态</div>
+        <div className="panelHeader panelHeaderInline">状态</div>
         <div className="panelBody">
-          <div className="field">
+          <div className="field codeCard">
             <div className="labelRow">
               <div>当前设置</div>
-              <button type="button" onClick={refresh}>
+              <button type="button" className="btnPillSoft" onClick={refresh}>
                 刷新
               </button>
             </div>
-            <textarea readOnly value={settings ? JSON.stringify(settings, null, 2) : ''} />
+            <textarea className="codeArea" readOnly value={settings ? JSON.stringify(settings, null, 2) : ''} />
           </div>
 
-          <div className="field">
+          <div className="field surfaceSubCard">
             <div className="labelRow">
               <div>测试结果</div>
             </div>
@@ -144,15 +156,20 @@ export function SettingsPage() {
                 })}
               </div>
             ) : (
-              <div className="muted">尚未执行测试</div>
+              <div className="emptyState">
+                <div className="emptyStateIcon" aria-hidden>
+                  <span />
+                </div>
+                <div className="emptyStateText">尚未执行测试连接。</div>
+              </div>
             )}
           </div>
 
-          <div className="field">
+          <div className="field codeCard">
             <div className="labelRow">
               <div>测试结果（原始 JSON）</div>
             </div>
-            <textarea readOnly value={testResult ? JSON.stringify(testResult, null, 2) : ''} />
+            <textarea className="codeArea" readOnly value={testResult ? JSON.stringify(testResult, null, 2) : ''} />
           </div>
         </div>
       </section>

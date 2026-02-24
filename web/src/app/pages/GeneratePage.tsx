@@ -230,11 +230,14 @@ export function GeneratePage() {
     .map((o) => ({ assetId: o.asset_id, url: `/api/assets/${o.asset_id}/content` }))
 
   return (
-    <div className="grid2">
+    <div className="grid2 pageGenerate">
       <section className="panel">
-        <div className="panelHeader">生成</div>
+        <div className="panelHeader panelHeaderStack">
+          <div className="panelTitle">生成</div>
+        </div>
         <div className="panelBody">
-          <div className="field">
+          <div className="formSectionCard">
+            <div className="field" style={{ marginBottom: 0 }}>
             <div className="labelRow">
               <div>模型</div>
               {selectedModel?.provider_id ? <div className="muted">{selectedModel.provider_id}</div> : null}
@@ -251,18 +254,22 @@ export function GeneratePage() {
                 <span>该模型即将推出，当前仅展示，不可选择生成。</span>
               </div>
             ) : null}
+            </div>
           </div>
 
-          <div className="field">
+          <div className="formSectionCard">
+            <div className="field" style={{ marginBottom: 0 }}>
             <div className="labelRow">
               <div>提示词</div>
               <div className="muted">{selectedModel?.prompt_max_chars ? `≤ ${selectedModel.prompt_max_chars}` : ''}</div>
             </div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="写点清晰具体的描述…" />
+            </div>
           </div>
 
-          <div className="row">
-            <div className="field">
+          <div className="formSectionCard">
+            <div className="row">
+              <div className="field" style={{ marginBottom: 0 }}>
               <div className="labelRow">
                 <div>长宽比</div>
               </div>
@@ -275,11 +282,11 @@ export function GeneratePage() {
                   label: r,
                 }))}
               />
-            </div>
+              </div>
 
             {jobType === 'image.generate' ? (
               <>
-                <div className="field">
+                <div className="field" style={{ marginBottom: 0 }}>
                   <div className="labelRow">
                     <div>分辨率</div>
                   </div>
@@ -293,7 +300,7 @@ export function GeneratePage() {
                     }))}
                   />
                 </div>
-                <div className="field">
+                <div className="field" style={{ marginBottom: 0 }}>
                   <div className="labelRow">
                     <div>输出张数</div>
                     <div className="muted">
@@ -317,7 +324,7 @@ export function GeneratePage() {
             ) : null}
 
             {jobType === 'video.generate' ? (
-              <div className="field">
+              <div className="field" style={{ marginBottom: 0 }}>
                 <div className="labelRow">
                   <div>时长（秒）</div>
                 </div>
@@ -332,10 +339,12 @@ export function GeneratePage() {
                 />
               </div>
             ) : null}
+            </div>
           </div>
 
           {jobType === 'image.generate' ? (
-            <div className="field">
+            <div className="formSectionCard">
+              <div className="field" style={{ marginBottom: 0 }}>
               <div className="labelRow">
                 <div>参考图（可选）</div>
                 <div className="muted">
@@ -347,12 +356,18 @@ export function GeneratePage() {
               <div className="row">
                 <button
                   type="button"
+                  className="btnPillSoft"
                   onClick={() => referenceFileRef.current?.click()}
                   disabled={creating}
                 >
                   上传参考图
                 </button>
-                <button type="button" onClick={() => setReferencePickerOpen(true)} disabled={creating}>
+                <button
+                  type="button"
+                  className="btnPillSoft"
+                  onClick={() => setReferencePickerOpen(true)}
+                  disabled={creating}
+                >
                   从资产选择
                 </button>
               </div>
@@ -395,6 +410,7 @@ export function GeneratePage() {
                       </div>
                       <button
                         type="button"
+                        className="btnPillSoft"
                         onClick={() => setReferenceAssetIds((prev) => prev.filter((id) => id !== refId))}
                         style={{ flex: '0 0 auto' }}
                       >
@@ -403,7 +419,7 @@ export function GeneratePage() {
                     </div>
                   ))}
                   <div className="row">
-                    <button type="button" onClick={() => setReferenceAssetIds([])}>
+                    <button type="button" className="btnOutline" onClick={() => setReferenceAssetIds([])}>
                       清空参考图
                     </button>
                   </div>
@@ -424,12 +440,14 @@ export function GeneratePage() {
                 onSelect={(a) => appendReferenceAssetId(a.id)}
                 onClose={() => setReferencePickerOpen(false)}
               />
+              </div>
             </div>
           ) : null}
 
           {jobType === 'video.generate' ? (
             <>
-              <div className="field">
+              <div className="formSectionCard">
+                <div className="field" style={{ marginBottom: 0 }}>
                 <div className="labelRow">
                   <div>首帧（可选）</div>
                 </div>
@@ -437,12 +455,18 @@ export function GeneratePage() {
                 <div className="row">
                   <button
                     type="button"
+                    className="btnPillSoft"
                     onClick={() => startFileRef.current?.click()}
                     disabled={creating}
                   >
                     上传首帧
                   </button>
-                  <button type="button" onClick={() => setStartPickerOpen(true)} disabled={creating}>
+                  <button
+                    type="button"
+                    className="btnPillSoft"
+                    onClick={() => setStartPickerOpen(true)}
+                    disabled={creating}
+                  >
                     从资产选择
                   </button>
                 </div>
@@ -471,7 +495,12 @@ export function GeneratePage() {
                       <div className="assetInlineId">{startAssetId}</div>
                       <div className="muted">已选择首帧</div>
                     </div>
-                    <button type="button" onClick={() => setStartAssetId(null)} style={{ flex: '0 0 auto' }}>
+                    <button
+                      type="button"
+                      className="btnPillSoft"
+                      onClick={() => setStartAssetId(null)}
+                      style={{ flex: '0 0 auto' }}
+                    >
                       清除
                     </button>
                   </div>
@@ -486,9 +515,11 @@ export function GeneratePage() {
                   onSelect={(a) => setStartAssetId(a.id)}
                   onClose={() => setStartPickerOpen(false)}
                 />
+                </div>
               </div>
 
-              <div className="field">
+              <div className="formSectionCard">
+                <div className="field" style={{ marginBottom: 0 }}>
                 <div className="labelRow">
                   <div>尾帧（可选）</div>
                 </div>
@@ -496,12 +527,18 @@ export function GeneratePage() {
                 <div className="row">
                   <button
                     type="button"
+                    className="btnPillSoft"
                     onClick={() => endFileRef.current?.click()}
                     disabled={creating}
                   >
                     上传尾帧
                   </button>
-                  <button type="button" onClick={() => setEndPickerOpen(true)} disabled={creating}>
+                  <button
+                    type="button"
+                    className="btnPillSoft"
+                    onClick={() => setEndPickerOpen(true)}
+                    disabled={creating}
+                  >
                     从资产选择
                   </button>
                 </div>
@@ -530,7 +567,12 @@ export function GeneratePage() {
                       <div className="assetInlineId">{endAssetId}</div>
                       <div className="muted">已选择尾帧</div>
                     </div>
-                    <button type="button" onClick={() => setEndAssetId(null)} style={{ flex: '0 0 auto' }}>
+                    <button
+                      type="button"
+                      className="btnPillSoft"
+                      onClick={() => setEndAssetId(null)}
+                      style={{ flex: '0 0 auto' }}
+                    >
                       清除
                     </button>
                   </div>
@@ -545,6 +587,7 @@ export function GeneratePage() {
                   onSelect={(a) => setEndAssetId(a.id)}
                   onClose={() => setEndPickerOpen(false)}
                 />
+                </div>
               </div>
             </>
           ) : null}
@@ -556,10 +599,10 @@ export function GeneratePage() {
             </div>
           ) : null}
 
-          <div className="row">
+          <div className="row actionBar">
             <button
               type="button"
-              className="btnPrimary"
+              className="btnPrimary btnPrimaryDark"
               onClick={onCreate}
               disabled={creating || !selectedModel || !!selectedModel.coming_soon}
             >
@@ -567,6 +610,7 @@ export function GeneratePage() {
             </button>
             <button
               type="button"
+              className="btnOutline"
               onClick={async () => {
                 if (!job?.id) return
                 try {
@@ -586,7 +630,7 @@ export function GeneratePage() {
       </section>
 
       <section className="panel">
-        <div className="panelHeader">
+        <div className="panelHeader panelHeaderInline">
           预览{' '}
           {job ? (
             <span className="statusPill" style={{ marginLeft: 10 }}>
@@ -609,7 +653,7 @@ export function GeneratePage() {
           ) : null}
         </div>
         <div className="panelBody">
-          <div className="preview">
+          <div className="preview previewCard">
             {outputUrl ? (
               isVideoOut ? (
                 <video className="previewMedia" src={outputUrl} controls />
@@ -635,11 +679,17 @@ export function GeneratePage() {
                 <img className="previewMedia" src={outputUrl} alt="output" />
               )
             ) : (
-              <div className="muted">暂无输出。创建任务后会在这里显示结果。</div>
+              <div className="emptyState">
+                <div className="emptyStateIcon" aria-hidden>
+                  <span />
+                </div>
+                <div className="emptyStateTitle">暂无输出结果</div>
+                <div className="emptyStateText">创建任务后，预览内容会出现在这里。</div>
+              </div>
             )}
           </div>
           {outputUrl ? (
-            <div className="row" style={{ flexWrap: 'wrap' }}>
+            <div className="row actionBar" style={{ flexWrap: 'wrap' }}>
               <a href={outputUrl} download style={{ flex: 1 }}>
                 <button type="button" style={{ width: '100%' }}>
                   下载首个输出
@@ -647,6 +697,7 @@ export function GeneratePage() {
               </a>
               <button
                 type="button"
+                className="btnPillSoft"
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(outputUrl)

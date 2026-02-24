@@ -74,51 +74,66 @@ export function AssetsPage() {
   }, [selected])
 
   return (
-    <div className="grid2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+    <div className="grid2 pageAssets" style={{ gridTemplateColumns: '1fr 1fr' }}>
       <section className="panel">
-        <div className="panelHeader">资产</div>
+        <div className="panelHeader panelHeaderStack">
+          <div className="panelTitle">资产</div>
+        </div>
         <div className="panelBody">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <div className="labelRow">
-                <div>类型</div>
-              </div>
-              <CardSelect
-                label="类型"
-                value={mediaType}
-                onChange={(v) => setMediaType(v)}
-                options={[
-                  { value: '', label: '全部' },
-                  { value: 'image', label: '图片' },
-                  { value: 'video', label: '视频' },
-                ]}
-              />
-            </div>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <div className="labelRow">
-                <div>来源</div>
-              </div>
-              <CardSelect
-                label="来源"
-                value={origin}
-                onChange={(v) => setOrigin(v)}
-                options={[
-                  { value: '', label: '全部' },
-                  { value: 'upload', label: '上传' },
-                  { value: 'generated', label: '生成' },
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="field">
-            <div className="labelRow">
-              <div>上传</div>
-              <button type="button" onClick={refresh}>
+          <div className="surfaceSubCard" style={{ marginBottom: 12 }}>
+            <div className="labelRow" style={{ marginBottom: 10 }}>
+              <div>筛选</div>
+              <button type="button" className="btnPillSoft" onClick={refresh}>
                 刷新
               </button>
             </div>
+            <div className="row">
+              <div className="field" style={{ marginBottom: 0 }}>
+                <div className="labelRow">
+                  <div>类型</div>
+                </div>
+                <CardSelect
+                  label="类型"
+                  value={mediaType}
+                  onChange={(v) => setMediaType(v)}
+                  options={[
+                    { value: '', label: '全部' },
+                    { value: 'image', label: '图片' },
+                    { value: 'video', label: '视频' },
+                  ]}
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <div className="labelRow">
+                  <div>来源</div>
+                </div>
+                <CardSelect
+                  label="来源"
+                  value={origin}
+                  onChange={(v) => setOrigin(v)}
+                  options={[
+                    { value: '', label: '全部' },
+                    { value: 'upload', label: '上传' },
+                    { value: 'generated', label: '生成' },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="field dropzoneCard">
+            <div className="labelRow">
+              <div>上传</div>
+              <div className="muted">支持 image / video</div>
+            </div>
+            <div className="dropzoneInner" aria-hidden>
+              <div className="dropzoneIcon">
+                <span />
+              </div>
+              <div className="dropzoneText">拖拽文件到这里，或点击选择文件</div>
+            </div>
             <input
+              className="fileInput"
               type="file"
               accept="image/*,video/*"
               onChange={async (e) => {
@@ -161,6 +176,7 @@ export function AssetsPage() {
                     onClick={() => setSelected(a)}
                     title={a.id}
                   >
+                    {active ? <div className="assetThumbCornerTag">已选中</div> : null}
                     <div className="assetThumbFrame">
                       {a.media_type === 'image' ? (
                         <img className="assetThumbImg" src={thumbUrl} alt={a.id} loading="lazy" />
@@ -191,7 +207,7 @@ export function AssetsPage() {
       </section>
 
       <section className="panel">
-        <div className="panelHeader">预览</div>
+        <div className="panelHeader panelHeaderInline">预览</div>
         <div className="panelBody">
           {selected ? (
             <>
@@ -201,7 +217,7 @@ export function AssetsPage() {
                   {selected.media_type} · {selected.origin} · {selected.id.slice(0, 8)}
                 </span>
               </div>
-              <div className="preview" style={{ minHeight: 360 }}>
+              <div className="preview previewCard" style={{ minHeight: 360 }}>
                 {previewUrl ? (
                   selected.media_type === 'video' ? (
                     <video className="previewMedia" src={previewUrl} controls />
@@ -211,11 +227,11 @@ export function AssetsPage() {
                 ) : null}
               </div>
               <div className="assetDetailGrid" style={{ marginBottom: 12 }}>
-                <div className="assetDetailItem">
+                <div className="assetDetailItem assetDetailItemPrimary">
                   <div className="assetDetailKey">ID</div>
                   <div className="assetDetailValue mono">{selected.id}</div>
                 </div>
-                <div className="assetDetailItem">
+                <div className="assetDetailItem assetDetailItemPrimary">
                   <div className="assetDetailKey">类型</div>
                   <div className="assetDetailValue">{selected.media_type}</div>
                 </div>
@@ -259,14 +275,14 @@ export function AssetsPage() {
                 </div>
               </div>
               {selectedMetadataText ? (
-                <div className="field" style={{ marginBottom: 12 }}>
+                <div className="field codeCard" style={{ marginBottom: 12 }}>
                   <div className="labelRow">
                     <div>Metadata</div>
                   </div>
-                  <textarea readOnly value={selectedMetadataText} style={{ minHeight: 90 }} />
+                  <textarea className="codeArea" readOnly value={selectedMetadataText} style={{ minHeight: 90 }} />
                 </div>
               ) : null}
-              <div className="row">
+              <div className="row actionBar">
                 <a href={previewUrl || '#'} download style={{ flex: 1 }}>
                   <button type="button" style={{ width: '100%' }} disabled={!previewUrl}>
                     下载
@@ -274,6 +290,7 @@ export function AssetsPage() {
                 </a>
                 <button
                   type="button"
+                  className="btnPillSoft"
                   onClick={async () => {
                     if (!previewUrl) return
                     try {
@@ -289,7 +306,13 @@ export function AssetsPage() {
               </div>
             </>
           ) : (
-            <div className="muted">从左侧选择一个资产以预览。</div>
+            <div className="emptyState emptyStateTall">
+              <div className="emptyStateIcon" aria-hidden>
+                <span />
+              </div>
+              <div className="emptyStateTitle">未选择资产</div>
+              <div className="emptyStateText">从左侧缩略图列表选择一个资产以查看预览与元信息。</div>
+            </div>
           )}
         </div>
       </section>

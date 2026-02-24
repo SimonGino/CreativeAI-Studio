@@ -4,6 +4,23 @@ import { api } from '../api/client'
 import type { Job, ModelInfo } from '../api/types'
 import { providerLogoSrc } from '../ui/logo'
 
+function statusBadgeTone(status: string): 'ok' | 'err' | 'warn' | 'muted' {
+  if (status === 'succeeded') return 'ok'
+  if (status === 'failed') return 'err'
+  if (status === 'running' || status === 'queued') return 'warn'
+  return 'muted'
+}
+
+function renderStatusBadge(status: string) {
+  const tone = statusBadgeTone(status)
+  return (
+    <span className={`miniBadge miniBadge${tone[0].toUpperCase()}${tone.slice(1)}`}>
+      <span className={`miniBadgeDot miniBadgeDot${tone[0].toUpperCase()}${tone.slice(1)}`} />
+      <span>{status}</span>
+    </span>
+  )
+}
+
 export function HistoryPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [selected, setSelected] = useState<Job | null>(null)
@@ -73,13 +90,16 @@ export function HistoryPage() {
   }, [selected, selectedModel])
 
   return (
-    <div className="grid2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+    <div className="grid2 pageHistory" style={{ gridTemplateColumns: '1fr 1fr' }}>
       <section className="panel">
-        <div className="panelHeader">历史</div>
+        <div className="panelHeader panelHeaderStack">
+          <div className="panelTitle">历史</div>
+        </div>
         <div className="panelBody">
-          <div className="row" style={{ marginBottom: 12 }}>
+          <div className="row toolbarCenter" style={{ marginBottom: 12 }}>
             <button
               type="button"
+              className="btnPillSoft"
               onClick={async () => {
                 setError(null)
                 await refresh(selected?.id)
@@ -96,7 +116,7 @@ export function HistoryPage() {
             </div>
           ) : null}
 
-          <table className="table">
+          <table className="table historyTable">
             <thead>
               <tr>
                 <th>ID</th>
@@ -109,7 +129,8 @@ export function HistoryPage() {
               {jobs.map((j) => (
                 <tr
                   key={j.id}
-                  style={{ cursor: 'pointer', background: selected?.id === j.id ? 'var(--rowSelectedBg)' : 'transparent' }}
+                  className="historyTableRow"
+                  data-selected={selected?.id === j.id ? 'true' : 'false'}
                   onClick={async () => {
                     try {
                       const full = await api.getJob(j.id)
@@ -119,9 +140,9 @@ export function HistoryPage() {
                     }
                   }}
                 >
-                  <td style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{j.id.slice(0, 10)}</td>
+                  <td className="mono">{j.id.slice(0, 10)}</td>
                   <td>{j.job_type}</td>
-                  <td>{j.status}</td>
+                  <td>{renderStatusBadge(j.status)}</td>
                   <td>{j.created_at}</td>
                 </tr>
               ))}
@@ -138,7 +159,7 @@ export function HistoryPage() {
       </section>
 
       <section className="panel">
-        <div className="panelHeader">详情</div>
+        <div className="panelHeader panelHeaderInline">详情</div>
         <div className="panelBody">
           {selected ? (
             <>
@@ -169,9 +190,10 @@ export function HistoryPage() {
                 </div>
               ) : null}
 
-              <div className="row" style={{ marginBottom: 12 }}>
+              <div className="row actionBar" style={{ marginBottom: 12 }}>
                 <button
                   type="button"
+                  className="btnPillSoft"
                   onClick={async () => {
                     try {
                       if (!selected) return
@@ -187,6 +209,7 @@ export function HistoryPage() {
                 </button>
                 <button
                   type="button"
+                  className="btnOutline"
                   onClick={async () => {
                     try {
                       if (!selected) return
@@ -210,24 +233,43 @@ export function HistoryPage() {
                 </div>
               ) : null}
 
-              <div className="field">
+              <div className="detailMetaGrid" style={{ marginBottom: 12 }}>
+                <div className="detailMetaCard">
+                  <div className="detailMetaKey">任务 ID</div>
+                  <div className="detailMetaValue mono">{selected.id}</div>
+                </div>
+                <div className="detailMetaCard">
+                  <div className="detailMetaKey">类型</div>
+                  <div className="detailMetaValue">{selected.job_type}</div>
+                </div>
+                <div className="detailMetaCard">
+                  <div className="detailMetaKey">状态</div>
+                  <div className="detailMetaValue">{selected.status}</div>
+                </div>
+                <div className="detailMetaCard">
+                  <div className="detailMetaKey">模型</div>
+                  <div className="detailMetaValue">{selectedModel?.display_name || selected.model_id}</div>
+                </div>
+              </div>
+
+              <div className="field codeCard">
                 <div className="labelRow">
                   <div>参数</div>
                 </div>
-                <textarea readOnly value={JSON.stringify(selected.params, null, 2)} />
+                <textarea className="codeArea" readOnly value={JSON.stringify(selected.params, null, 2)} />
               </div>
 
-              <div className="field">
+              <div className="field codeCard">
                 <div className="labelRow">
                   <div>关联资产</div>
                 </div>
-                <textarea readOnly value={JSON.stringify(selected.job_assets || [], null, 2)} />
+                <textarea className="codeArea" readOnly value={JSON.stringify(selected.job_assets || [], null, 2)} />
               </div>
 
-              <div className="panel" style={{ marginTop: 12 }}>
-                <div className="panelHeader">输出预览</div>
+              <div className="panel nestedPanel" style={{ marginTop: 12 }}>
+                <div className="panelHeader panelHeaderInline">输出预览</div>
                 <div className="panelBody">
-                  <div className="preview" style={{ minHeight: 300 }}>
+                  <div className="preview previewCard" style={{ minHeight: 300 }}>
                     {outputUrl ? (
                       isVideoOut ? (
                         <video className="previewMedia" src={outputUrl} controls />
@@ -246,14 +288,26 @@ export function HistoryPage() {
                         <img className="previewMedia" src={outputUrl} alt="output" />
                       )
                     ) : (
-                      <div className="muted">暂无输出</div>
+                      <div className="emptyState">
+                        <div className="emptyStateIcon" aria-hidden>
+                          <span />
+                        </div>
+                        <div className="emptyStateTitle">暂无输出</div>
+                        <div className="emptyStateText">此任务尚未生成可预览结果。</div>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </>
           ) : (
-            <div className="muted">从左侧选择一个任务查看详情。</div>
+            <div className="emptyState emptyStateTall">
+              <div className="emptyStateIcon" aria-hidden>
+                <span />
+              </div>
+              <div className="emptyStateTitle">尚未选择任务</div>
+              <div className="emptyStateText">从左侧表格选择一条历史记录以查看详情。</div>
+            </div>
           )}
         </div>
       </section>
