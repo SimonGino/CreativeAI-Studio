@@ -314,7 +314,7 @@ export function GeneratePage() {
           ) : null}
 
           {jobType === 'video.generate' ? (
-            <div className="row">
+            <>
               <div className="field">
                 <div className="labelRow">
                   <div>首帧（可选）</div>
@@ -373,6 +373,7 @@ export function GeneratePage() {
                   onClose={() => setStartPickerOpen(false)}
                 />
               </div>
+
               <div className="field">
                 <div className="labelRow">
                   <div>尾帧（可选）</div>
@@ -431,7 +432,7 @@ export function GeneratePage() {
                   onClose={() => setEndPickerOpen(false)}
                 />
               </div>
-            </div>
+            </>
           ) : null}
 
           {error ? (
