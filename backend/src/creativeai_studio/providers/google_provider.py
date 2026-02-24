@@ -67,7 +67,7 @@ class GoogleProvider:
             contents = prompt
         else:
             contents = [
-                types.Part.from_text(prompt),
+                types.Part.from_text(text=prompt),
                 types.Part.from_bytes(
                     data=reference_image_bytes,
                     mime_type=str(reference_image_mime_type or "image/png"),
