@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8bd7e" />
+      <stop offset="0.55" stop-color="#f2a85a" />
+      <stop offset="1" stop-color="#e59649" />
+    </linearGradient>
+    <linearGradient id="gloss" x1="32" y1="8" x2="32" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="white" stop-opacity="0.35" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <filter id="shadow" x="0" y="1" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#b55311" flood-opacity="0.28" />
+    </filter>
+    <clipPath id="clip">
+      <rect x="6" y="6" width="52" height="52" rx="12" />
+    </clipPath>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="6" y="6" width="52" height="52" rx="12" fill="url(#bg)" stroke="#ea8f3a" stroke-width="1.4" />
+    <g clip-path="url(#clip)">
+      <path
+        d="M6 12C14 9 25 8 32 8C40 8 51 9 58 12V28C50 30 41 31 32 31C23 31 14 30 6 28V12Z"
+        fill="url(#gloss)"
+      />
+    </g>
+  </g>
+
+  <rect x="27" y="18" width="10" height="28" rx="3" fill="#0f2a4a" />
+  <rect x="18" y="27" width="28" height="10" rx="3" fill="#0f2a4a" />
+</svg>
