@@ -245,7 +245,6 @@ export function GeneratePage() {
             <div className="field">
               <div className="labelRow">
                 <div>参考图（可选）</div>
-                <div className="muted">{referenceAssetId ? `asset: ${referenceAssetId}` : ''}</div>
               </div>
 
               <div className="row">
