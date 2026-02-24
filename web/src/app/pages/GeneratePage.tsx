@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { api } from '../api/client'
 import type { Job, ModelInfo, Settings } from '../api/types'
 import { CardSelect } from '../components/CardSelect'
+import { ImageAssetPickerModal } from '../components/ImageAssetPickerModal'
 import { ModelSelect } from '../components/ModelSelect'
 
 type JobType = 'image.generate' | 'video.generate'
@@ -29,8 +30,14 @@ export function GeneratePage() {
   const [durationSeconds, setDurationSeconds] = useState<number>(5)
 
   const [referenceAssetId, setReferenceAssetId] = useState<string | null>(null)
+  const referenceFileRef = useRef<HTMLInputElement | null>(null)
+  const [referencePickerOpen, setReferencePickerOpen] = useState(false)
   const [startAssetId, setStartAssetId] = useState<string | null>(null)
+  const startFileRef = useRef<HTMLInputElement | null>(null)
+  const [startPickerOpen, setStartPickerOpen] = useState(false)
   const [endAssetId, setEndAssetId] = useState<string | null>(null)
+  const endFileRef = useRef<HTMLInputElement | null>(null)
+  const [endPickerOpen, setEndPickerOpen] = useState(false)
 
   const [job, setJob] = useState<Job | null>(null)
   const [creating, setCreating] = useState(false)
@@ -240,14 +247,52 @@ export function GeneratePage() {
                 <div>参考图（可选）</div>
                 <div className="muted">{referenceAssetId ? `asset: ${referenceAssetId}` : ''}</div>
               </div>
+
+              <div className="row">
+                <button
+                  type="button"
+                  onClick={() => referenceFileRef.current?.click()}
+                  disabled={creating}
+                >
+                  上传参考图
+                </button>
+                <button type="button" onClick={() => setReferencePickerOpen(true)} disabled={creating}>
+                  从资产选择
+                </button>
+              </div>
+
               <input
+                ref={referenceFileRef}
                 type="file"
                 accept="image/*"
+                style={{ display: 'none' }}
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   if (f) uploadAndSet(f, setReferenceAssetId, 'image')
+                  e.currentTarget.value = ''
                 }}
               />
+
+              {referenceAssetId ? (
+                <div className="assetInlinePreview" style={{ marginTop: 10 }}>
+                  <img
+                    className="assetInlineThumb"
+                    src={`/api/assets/${referenceAssetId}/content`}
+                    alt="reference"
+                    loading="lazy"
+                  />
+                  <div className="assetInlineMeta">
+                    <div className="assetInlineId">{referenceAssetId}</div>
+                    <div className="muted">已选择参考图</div>
+                  </div>
+                  <button type="button" onClick={() => setReferenceAssetId(null)} style={{ flex: '0 0 auto' }}>
+                    清除
+                  </button>
+                </div>
+              ) : (
+                <div className="muted">未选择参考图</div>
+              )}
+
               <div className="muted">
                 参考图跟随默认鉴权：{defaultAuthMode === 'vertex' ? 'Vertex（Imagen edit）' : 'API Key（Gemini 多模态）'}
               </div>
@@ -257,6 +302,14 @@ export function GeneratePage() {
                   <span>未配置 Vertex：请到“设置”完善后再使用参考图。</span>
                 </div>
               ) : null}
+
+              <ImageAssetPickerModal
+                open={referencePickerOpen}
+                title="选择参考图"
+                selectedAssetId={referenceAssetId}
+                onSelect={(a) => setReferenceAssetId(a.id)}
+                onClose={() => setReferencePickerOpen(false)}
+              />
             </div>
           ) : null}
 
@@ -265,29 +318,117 @@ export function GeneratePage() {
               <div className="field">
                 <div className="labelRow">
                   <div>首帧（可选）</div>
-                  <div className="muted">{startAssetId ? `asset: ${startAssetId}` : ''}</div>
                 </div>
+
+                <div className="row">
+                  <button
+                    type="button"
+                    onClick={() => startFileRef.current?.click()}
+                    disabled={creating}
+                  >
+                    上传首帧
+                  </button>
+                  <button type="button" onClick={() => setStartPickerOpen(true)} disabled={creating}>
+                    从资产选择
+                  </button>
+                </div>
+
                 <input
+                  ref={startFileRef}
                   type="file"
                   accept="image/*"
+                  style={{ display: 'none' }}
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) uploadAndSet(f, setStartAssetId, 'image')
+                    e.currentTarget.value = ''
                   }}
+                />
+
+                {startAssetId ? (
+                  <div className="assetInlinePreview" style={{ marginTop: 10 }}>
+                    <img
+                      className="assetInlineThumb"
+                      src={`/api/assets/${startAssetId}/content`}
+                      alt="start"
+                      loading="lazy"
+                    />
+                    <div className="assetInlineMeta">
+                      <div className="assetInlineId">{startAssetId}</div>
+                      <div className="muted">已选择首帧</div>
+                    </div>
+                    <button type="button" onClick={() => setStartAssetId(null)} style={{ flex: '0 0 auto' }}>
+                      清除
+                    </button>
+                  </div>
+                ) : (
+                  <div className="muted">未选择首帧</div>
+                )}
+
+                <ImageAssetPickerModal
+                  open={startPickerOpen}
+                  title="选择首帧图片"
+                  selectedAssetId={startAssetId}
+                  onSelect={(a) => setStartAssetId(a.id)}
+                  onClose={() => setStartPickerOpen(false)}
                 />
               </div>
               <div className="field">
                 <div className="labelRow">
                   <div>尾帧（可选）</div>
-                  <div className="muted">{endAssetId ? `asset: ${endAssetId}` : ''}</div>
                 </div>
+
+                <div className="row">
+                  <button
+                    type="button"
+                    onClick={() => endFileRef.current?.click()}
+                    disabled={creating}
+                  >
+                    上传尾帧
+                  </button>
+                  <button type="button" onClick={() => setEndPickerOpen(true)} disabled={creating}>
+                    从资产选择
+                  </button>
+                </div>
+
                 <input
+                  ref={endFileRef}
                   type="file"
                   accept="image/*"
+                  style={{ display: 'none' }}
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) uploadAndSet(f, setEndAssetId, 'image')
+                    e.currentTarget.value = ''
                   }}
+                />
+
+                {endAssetId ? (
+                  <div className="assetInlinePreview" style={{ marginTop: 10 }}>
+                    <img
+                      className="assetInlineThumb"
+                      src={`/api/assets/${endAssetId}/content`}
+                      alt="end"
+                      loading="lazy"
+                    />
+                    <div className="assetInlineMeta">
+                      <div className="assetInlineId">{endAssetId}</div>
+                      <div className="muted">已选择尾帧</div>
+                    </div>
+                    <button type="button" onClick={() => setEndAssetId(null)} style={{ flex: '0 0 auto' }}>
+                      清除
+                    </button>
+                  </div>
+                ) : (
+                  <div className="muted">未选择尾帧</div>
+                )}
+
+                <ImageAssetPickerModal
+                  open={endPickerOpen}
+                  title="选择尾帧图片"
+                  selectedAssetId={endAssetId}
+                  onSelect={(a) => setEndAssetId(a.id)}
+                  onClose={() => setEndPickerOpen(false)}
                 />
               </div>
             </div>
