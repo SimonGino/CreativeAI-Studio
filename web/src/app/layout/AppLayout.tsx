@@ -24,10 +24,13 @@ export function AppLayout({ children }: Props) {
     <div className="app">
       <header className="appHeader">
         <div className="appHeaderInner">
-          <div className="brand">
-            <div className="brandMark" />
-            <div className="brandName">CreativeAI Studio</div>
-          </div>
+          <NavLink to="/generate" className="brand brandLink" aria-label="前往生成页面">
+            <span className="brandMark" aria-hidden />
+            <span className="brandText">
+              <span className="brandName">CreativeAI Studio</span>
+              <span className="brandJumpHint">生成</span>
+            </span>
+          </NavLink>
           <nav className="nav">
             {isGenerate ? (
               <div className="segTabs" role="tablist" aria-label="生成模式">

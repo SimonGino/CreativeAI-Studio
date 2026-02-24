@@ -599,7 +599,7 @@ export function GeneratePage() {
             </div>
           ) : null}
 
-          <div className="row actionBar">
+          <div className="row actionBar actionBarPrimaryForm">
             <button
               type="button"
               className="btnPrimary btnPrimaryDark"
