@@ -80,6 +80,28 @@ export function GeneratePage() {
     const presets = (selectedModel?.resolution_presets || []).map((v) => String(v))
     return presets.length > 0 ? presets : ['1k']
   }, [jobType, selectedModel])
+  const aspectRatioOptions = useMemo(() => {
+    const fallback = jobType === 'video.generate' ? ['16:9', '9:16'] : ['auto', '1:1', '16:9', '9:16']
+    const base = (selectedModel?.aspect_ratios || fallback).map((v) => String(v))
+    const next: string[] = []
+    if (jobType === 'video.generate' && !base.includes('auto')) {
+      next.push('auto')
+    }
+    for (const ratio of base) {
+      if (!next.includes(ratio)) next.push(ratio)
+    }
+    return next
+  }, [jobType, selectedModel])
+  const videoDurationOptions = useMemo(() => {
+    if (jobType !== 'video.generate') return []
+    const raw = (selectedModel?.duration_seconds || [5, 10]).map((v) => Number(v))
+    const next: number[] = []
+    for (const value of raw) {
+      if (!Number.isFinite(value)) continue
+      if (!next.includes(value)) next.push(value)
+    }
+    return next
+  }, [jobType, selectedModel])
   const supportsSequentialImageGeneration =
     jobType === 'image.generate' && !!selectedModel?.sequential_image_generation_supported
   const maxOutputImagesByModel = Math.max(1, Math.min(5, selectedModel?.max_output_images || 1))
@@ -101,6 +123,21 @@ export function GeneratePage() {
       setImageSize(imageResolutionPresets[0])
     }
   }, [jobType, imageResolutionPresets, imageSize])
+
+  useEffect(() => {
+    if (aspectRatioOptions.length === 0) return
+    if (!aspectRatioOptions.includes(aspectRatio)) {
+      setAspectRatio(aspectRatioOptions[0] || 'auto')
+    }
+  }, [aspectRatioOptions, aspectRatio])
+
+  useEffect(() => {
+    if (jobType !== 'video.generate') return
+    if (videoDurationOptions.length === 0) return
+    if (!videoDurationOptions.includes(durationSeconds)) {
+      setDurationSeconds(videoDurationOptions[0])
+    }
+  }, [jobType, videoDurationOptions, durationSeconds])
 
   useEffect(() => {
     if (filteredModels.length === 0) return
@@ -277,9 +314,9 @@ export function GeneratePage() {
                 label="长宽比"
                 value={aspectRatio}
                 onChange={(v) => setAspectRatio(v)}
-                options={(selectedModel?.aspect_ratios || ['auto', '1:1', '16:9', '9:16']).map((r) => ({
+                options={aspectRatioOptions.map((r) => ({
                   value: r,
-                  label: r,
+                  label: r === 'auto' ? '自动' : r,
                 }))}
               />
               </div>
@@ -332,7 +369,7 @@ export function GeneratePage() {
                   label="时长（秒）"
                   value={String(durationSeconds)}
                   onChange={(v) => setDurationSeconds(Number(v))}
-                  options={(selectedModel?.duration_seconds || [5, 10]).map((s) => ({
+                  options={videoDurationOptions.map((s) => ({
                     value: String(s),
                     label: String(s),
                   }))}
@@ -653,6 +690,12 @@ export function GeneratePage() {
           ) : null}
         </div>
         <div className="panelBody">
+          {job?.error_message ? (
+            <div className="statusPill danger" style={{ marginBottom: 12 }}>
+              <span className="statusDot statusDotErr" />
+              <span>{job.error_message}</span>
+            </div>
+          ) : null}
           <div className="preview previewCard">
             {outputUrl ? (
               isVideoOut ? (

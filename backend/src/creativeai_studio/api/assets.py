@@ -7,8 +7,33 @@ from fastapi.responses import FileResponse
 
 from creativeai_studio.api.deps import AppContext, get_ctx
 from creativeai_studio.media_meta import read_image_size, read_video_meta_ffprobe
+from creativeai_studio.model_catalog import get_model
 
 router = APIRouter(prefix="/assets")
+
+
+def _asset_response_with_source_model(ctx: AppContext, asset: dict) -> dict:
+    out = dict(asset)
+    out["source_model_id"] = None
+    out["source_model_name"] = None
+
+    source_job_id = out.get("source_job_id")
+    if not source_job_id:
+        return out
+
+    job = ctx.jobs.get(str(source_job_id))
+    if not job:
+        return out
+
+    model_id = job.get("model_id")
+    if not model_id:
+        return out
+
+    out["source_model_id"] = str(model_id)
+    model = get_model(str(model_id))
+    if model and model.get("display_name"):
+        out["source_model_name"] = str(model["display_name"])
+    return out
 
 
 @router.post("/upload")
@@ -66,7 +91,8 @@ def list_assets(
     limit: int = 50,
     offset: int = 0,
 ):
-    return ctx.assets.list(media_type=media_type, origin=origin, limit=limit, offset=offset)
+    assets = ctx.assets.list(media_type=media_type, origin=origin, limit=limit, offset=offset)
+    return [_asset_response_with_source_model(ctx, a) for a in assets]
 
 
 @router.get("/{asset_id}")
@@ -74,7 +100,7 @@ def get_asset(asset_id: str, ctx: AppContext = Depends(get_ctx)):
     a = ctx.assets.get(asset_id)
     if not a:
         raise HTTPException(status_code=404, detail="Asset not found")
-    return a
+    return _asset_response_with_source_model(ctx, a)
 
 
 @router.get("/{asset_id}/content")
@@ -84,4 +110,3 @@ def asset_content(asset_id: str, ctx: AppContext = Depends(get_ctx)):
         raise HTTPException(status_code=404, detail="Asset not found")
     abs_path = ctx.asset_store.resolve(a["file_path"])
     return FileResponse(abs_path, media_type=a["mime_type"])
-

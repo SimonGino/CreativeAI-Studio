@@ -90,6 +90,50 @@ export function AppLayout({ children }: Props) {
         </div>
       </header>
       <main className="container">{children}</main>
+      <footer className="appFooter">
+        <div className="appFooterInner">
+          <div className="appFooterDivider" aria-hidden />
+          <div className="appFooterCols">
+            <div className="footerCol">
+              <div className="footerColTitle">App</div>
+              <a
+                className="footerLink"
+                href="https://github.com/SimonGino"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Github
+              </a>
+              <a
+                className="footerLink"
+                href="https://blog.aiqqyc.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Blog
+              </a>
+            </div>
+            <div className="footerCol">
+              <div className="footerColTitle">Company</div>
+              <div className="footerQrWrap">
+                <button type="button" className="footerLink footerQrTrigger" aria-label="查看微信公众号二维码">
+                  微信公众号
+                </button>
+                <div className="footerQrPopover" role="tooltip">
+                  <img
+                    src="/wechat-qrcode.jpg"
+                    alt="宇辰 AI 编程 微信公众号二维码"
+                    className="footerQrImage"
+                    loading="lazy"
+                  />
+                  <div className="footerQrTitle">宇辰 AI 编程</div>
+                  <div className="footerQrHint">微信扫码关注公众号</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

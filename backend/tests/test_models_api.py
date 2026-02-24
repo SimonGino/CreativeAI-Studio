@@ -46,3 +46,13 @@ def test_models_has_expected_ids(tmp_path):
     upcoming_video = next(m for m in models if m["model_id"] == "seeddance-2-0")
     assert upcoming_video["display_name"] == "SeedDance 2.0"
     assert upcoming_video["coming_soon"] is True
+
+    veo = next(m for m in models if m["model_id"] == "veo-3.1")
+    assert veo["provider_models"]["video_generate"] == "veo-3.1-generate-preview"
+    assert veo["aspect_ratios"] == ["16:9", "9:16"]
+    assert veo["duration_seconds"] == [4, 6, 8]
+
+    veo_fast = next(m for m in models if m["model_id"] == "veo-3.1-fast")
+    assert veo_fast["provider_models"]["video_generate"] == "veo-3.1-fast-generate-preview"
+    assert veo_fast["aspect_ratios"] == ["16:9", "9:16"]
+    assert veo_fast["duration_seconds"] == [4, 6, 8]

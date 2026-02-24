@@ -79,7 +79,8 @@ class JobRunner:
             result = self._dispatch(job)
             self._ctx.jobs.set_succeeded(job_id, result_dict=result or {})
         except Exception as e:  # noqa: BLE001
-            self._ctx.jobs.set_failed(job_id, "job failed", detail=str(e))
+            error_message, error_detail = self._format_job_error(job=job, error=e)
+            self._ctx.jobs.set_failed(job_id, error_message, detail=error_detail)
 
     def _dispatch(self, job: dict[str, Any]) -> dict[str, Any]:
         job_type = job.get("job_type")
@@ -335,3 +336,31 @@ class JobRunner:
         if outputs:
             out["output_asset_id"] = outputs[0]["asset_id"]
         return out
+
+    @staticmethod
+    def _format_job_error(*, job: dict[str, Any], error: Exception) -> tuple[str, str]:
+        detail = str(error)
+        job_type = str(job.get("job_type") or "")
+        model_id = str(job.get("model_id") or "")
+
+        if (
+            "503 UNAVAILABLE" in detail
+            or "currently experiencing high demand" in detail
+            or "'status': 'UNAVAILABLE'" in detail
+        ):
+            return (
+                "模型服务繁忙（请求高峰）。这通常是临时问题，请稍后重试。",
+                detail,
+            )
+
+        if (
+            job_type == "image.generate"
+            and model_id in {"nano-banana", "nano-banana-pro"}
+            and "No image output" in detail
+        ):
+            return (
+                "图片未生成成功：模型没有返回图片结果。请尝试改写提示词（优先使用原创描述，避免直接使用知名 IP 角色/品牌名），或降低敏感/冲突表述后重试。",
+                detail,
+            )
+
+        return ("job failed", detail)

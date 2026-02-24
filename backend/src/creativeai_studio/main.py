@@ -18,6 +18,8 @@ from creativeai_studio.repositories.job_assets_repo import JobAssetsRepo
 from creativeai_studio.repositories.jobs_repo import JobsRepo
 from creativeai_studio.repositories.settings_repo import SettingsRepo
 from creativeai_studio.providers.google_provider import GoogleProvider
+from creativeai_studio.providers.nano_banana_provider import NanoBananaProvider
+from creativeai_studio.providers.veo_provider import VeoProvider
 from creativeai_studio.providers.volcengine_ark_provider import VolcengineArkProvider
 from creativeai_studio.runner import JobRunner
 
@@ -44,7 +46,13 @@ def create_app(cfg: AppConfig | None = None) -> FastAPI:
     try:
         from google import genai
 
-        providers["google"] = GoogleProvider(client_factory=genai.Client)
+        nano_banana_provider = NanoBananaProvider(client_factory=genai.Client)
+        veo_provider = VeoProvider(client_factory=genai.Client)
+        providers["google"] = GoogleProvider(
+            client_factory=genai.Client,
+            nano_banana_provider=nano_banana_provider,
+            veo_provider=veo_provider,
+        )
     except Exception:  # noqa: BLE001
         pass
 

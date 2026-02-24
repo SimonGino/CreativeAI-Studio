@@ -60,6 +60,8 @@ export type Asset = {
   duration_seconds: number | null
   parent_asset_id: string | null
   source_job_id: string | null
+  source_model_id: string | null
+  source_model_name: string | null
   metadata: Record<string, unknown>
   created_at: string
 }

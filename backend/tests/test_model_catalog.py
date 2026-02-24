@@ -11,3 +11,4 @@ def test_nano_banana_has_expected_provider_models():
     fast = get_model("nano-banana")
     assert fast is not None
     assert fast["provider_models"]["image_generate"] == "gemini-2.5-flash-image"
+    assert fast["resolution_presets"] == ["1k"]

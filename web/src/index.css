@@ -1200,6 +1200,173 @@ textarea:focus {
 .container {
   max-width: 1320px;
   padding: 20px;
+  flex: 1 1 auto;
+}
+
+.appFooter {
+  width: 100%;
+  padding: 20px 20px 34px;
+}
+
+.appFooterInner {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.appFooterDivider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--panelBorderStrong) 12%,
+    var(--panelBorderStrong) 88%,
+    transparent
+  );
+  margin-bottom: 52px;
+}
+
+.appFooterCols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 160px));
+  width: fit-content;
+  margin-left: auto;
+  gap: 36px;
+  align-items: start;
+}
+
+.footerCol {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+}
+
+.footerColTitle {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  padding-inline: 6px;
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  color: #546074;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 4px 6px;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.footerLink:hover {
+  color: var(--secondary);
+  background: rgba(15, 42, 74, 0.04);
+  border-color: rgba(15, 42, 74, 0.06);
+}
+
+.footerLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.footerQrWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.footerQrTrigger {
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.footerQrTrigger:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.footerQrTrigger:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.footerQrPopover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: min(260px, calc(100vw - 32px));
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--panelBorder);
+  background: #fffdfb;
+  box-shadow:
+    0 18px 36px rgba(17, 24, 39, 0.1),
+    0 4px 10px rgba(17, 24, 39, 0.04);
+  display: grid;
+  gap: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s ease;
+  z-index: 30;
+}
+
+.footerQrWrap:hover .footerQrPopover,
+.footerQrWrap:focus-within .footerQrPopover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.footerQrPopover::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  top: 100%;
+  width: 10px;
+  height: 10px;
+  background: #fffdfb;
+  border-right: 1px solid var(--panelBorder);
+  border-bottom: 1px solid var(--panelBorder);
+  transform: translateY(-5px) rotate(45deg);
+}
+
+.footerQrImage {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #f1e7dd;
+  background: #fff;
+}
+
+.footerQrTitle {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.footerQrHint {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .grid2 {
@@ -1317,15 +1484,6 @@ textarea:focus {
   min-height: 120px;
 }
 
-.fileInput {
-  width: 100%;
-  border: 1px dashed #e9d5bf;
-  background: rgba(242, 168, 90, 0.04);
-  border-radius: 14px;
-  padding: 12px;
-  color: var(--muted);
-}
-
 .dropzoneCard {
   border: 1px solid var(--panelBorder);
   border-radius: 14px;
@@ -1349,6 +1507,23 @@ textarea:focus {
   justify-items: center;
   text-align: center;
   margin-bottom: 10px;
+}
+
+.dropzoneTrigger {
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.dropzoneTrigger:hover {
+  border-color: #e5cfb8;
+}
+
+.dropzoneTrigger:focus-visible {
+  outline: 2px solid rgba(242, 168, 90, 0.45);
+  outline-offset: 2px;
 }
 
 .dropzoneIcon {
@@ -1981,6 +2156,37 @@ textarea:focus {
 
   .panelTitle {
     font-size: 20px;
+  }
+
+  .appFooter {
+    padding: 12px 14px 20px;
+  }
+
+  .appFooterDivider {
+    margin-bottom: 20px;
+  }
+
+  .appFooterCols {
+    grid-template-columns: 1fr;
+    width: 100%;
+    margin-left: 0;
+    gap: 14px;
+  }
+
+  .footerCol {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .footerQrPopover {
+    right: auto;
+    left: 0;
+    width: min(240px, calc(100vw - 40px));
+  }
+
+  .footerQrPopover::after {
+    right: auto;
+    left: 20px;
   }
 
   .historyTable {

@@ -194,3 +194,40 @@ def test_coming_soon_model_is_rejected(tmp_path):
     )
     assert resp.status_code == 400
     assert "coming soon" in resp.text.lower()
+
+
+def test_veo_31_fast_rejects_unsupported_duration_and_aspect_ratio(tmp_path):
+    app = create_app(AppConfig(data_dir=tmp_path / "data"))
+    client = TestClient(app)
+
+    resp = client.post(
+        "/api/jobs",
+        json={
+            "job_type": "video.generate",
+            "model_id": "veo-3.1-fast",
+            "params": {
+                "prompt": "x",
+                "duration_seconds": 4,
+                "aspect_ratio": "1:1",
+            },
+            "auth": {"mode": "api_key"},
+        },
+    )
+    assert resp.status_code == 400
+    assert "aspect_ratio not supported" in resp.text
+
+    resp = client.post(
+        "/api/jobs",
+        json={
+            "job_type": "video.generate",
+            "model_id": "veo-3.1-fast",
+            "params": {
+                "prompt": "x",
+                "duration_seconds": 5,
+                "aspect_ratio": "16:9",
+            },
+            "auth": {"mode": "api_key"},
+        },
+    )
+    assert resp.status_code == 400
+    assert "duration_seconds not supported" in resp.text

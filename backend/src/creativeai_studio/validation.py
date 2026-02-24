@@ -59,6 +59,8 @@ def validate_job_create(payload: dict[str, Any], ctx: AppContext) -> ValidatedJo
         params = _normalize_reference_images(params, model)
         _validate_image_size(params, model)
         _validate_sequential_image_generation(params, model)
+    elif job_type == "video.generate":
+        _validate_video_duration(params, model)
 
     params = _normalize_aspect_ratio(params, model, ctx)
     return ValidatedJobCreate(job_type=job_type, model_id=model_id, auth_mode=auth_mode, params=params)
@@ -173,6 +175,25 @@ def _validate_image_size(params: dict[str, Any], model: dict[str, Any]) -> None:
         raise ValidationError(f"image_size not supported; allowed: {allowed}")
 
 
+def _validate_video_duration(params: dict[str, Any], model: dict[str, Any]) -> None:
+    supported = model.get("duration_seconds")
+    if not supported:
+        return
+
+    supported_ints = [int(v) for v in supported]
+    if params.get("duration_seconds") is None:
+        params["duration_seconds"] = supported_ints[0]
+        return
+
+    try:
+        value = int(params.get("duration_seconds"))
+    except Exception as exc:  # noqa: BLE001
+        raise ValidationError("duration_seconds must be an integer") from exc
+
+    if value not in supported_ints:
+        allowed = ", ".join(str(v) for v in supported_ints)
+        raise ValidationError(f"duration_seconds not supported; allowed: {allowed}")
+    params["duration_seconds"] = value
 
 
 def _parse_ratio(r: str) -> float | None:

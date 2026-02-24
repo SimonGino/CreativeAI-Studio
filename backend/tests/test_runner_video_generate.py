@@ -35,7 +35,7 @@ def test_runner_video_generate_stores_asset(tmp_path):
     job = ctx.jobs.get("j1")
     assert job is not None
     assert job["status"] == "succeeded"
-    assert provider.last_provider_model == "veo-3.1"
+    assert provider.last_provider_model == "veo-3.1-generate-preview"
     assert job["result"]["outputs"]
     assert job["result"]["outputs"][0]["media_type"] == "video"
     assert job["result"]["output_asset_id"] == job["result"]["outputs"][0]["asset_id"]

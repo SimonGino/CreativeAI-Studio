@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { api } from '../api/client'
 import type { Asset } from '../api/types'
@@ -36,6 +36,7 @@ export function AssetsPage() {
   const [mediaType, setMediaType] = useState<string>('')
   const [origin, setOrigin] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   async function refresh() {
     setError(null)
@@ -126,16 +127,22 @@ export function AssetsPage() {
               <div>上传</div>
               <div className="muted">支持 image / video</div>
             </div>
-            <div className="dropzoneInner" aria-hidden>
+            <button
+              type="button"
+              className="dropzoneInner dropzoneTrigger"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="选择文件上传"
+            >
               <div className="dropzoneIcon">
                 <span />
               </div>
               <div className="dropzoneText">拖拽文件到这里，或点击选择文件</div>
-            </div>
+            </button>
             <input
-              className="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
+              hidden
               onChange={async (e) => {
                 const f = e.target.files?.[0]
                 if (!f) return
@@ -168,6 +175,7 @@ export function AssetsPage() {
               {assets.map((a) => {
                 const thumbUrl = `/api/assets/${a.id}/content`
                 const active = selected?.id === a.id
+                const sourceModelLabel = a.source_model_name || a.source_model_id
                 return (
                   <button
                     key={a.id}
@@ -193,7 +201,10 @@ export function AssetsPage() {
                     <div className="assetThumbMeta">
                       <div className="assetThumbId">{a.id.slice(0, 10)}</div>
                       <div className="assetThumbSub">
-                        {a.origin} · {formatDateText(a.created_at)}
+                        {a.origin}
+                        {a.origin === 'generated' && sourceModelLabel ? ` · ${sourceModelLabel}` : ''}
+                        {' · '}
+                        {formatDateText(a.created_at)}
                       </div>
                     </div>
                   </button>
@@ -268,6 +279,12 @@ export function AssetsPage() {
                 <div className="assetDetailItem">
                   <div className="assetDetailKey">源任务</div>
                   <div className="assetDetailValue mono">{selected.source_job_id || '-'}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">生成模型</div>
+                  <div className="assetDetailValue">
+                    {selected.source_model_name || selected.source_model_id || '-'}
+                  </div>
                 </div>
                 <div className="assetDetailItem">
                   <div className="assetDetailKey">父资产</div>
