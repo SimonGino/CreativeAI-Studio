@@ -274,6 +274,7 @@ textarea:focus {
 
 .row > * {
   flex: 1;
+  min-width: 0;
 }
 
 .muted {
@@ -712,6 +713,8 @@ textarea:focus {
   border: 1px solid var(--fieldBorder);
   background: var(--fieldBg);
   box-shadow: var(--shadowInset);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .assetInlineThumb {
@@ -735,4 +738,7 @@ textarea:focus {
 .assetInlineId {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
