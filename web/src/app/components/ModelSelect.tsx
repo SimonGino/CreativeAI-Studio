@@ -16,6 +16,7 @@ function clampBadges(badges: Badge[], max: number): Badge[] {
 }
 
 function buildBadges(model: ModelInfo): Badge[] {
+  if (model.coming_soon) return [{ label: '即将推出', tone: 'amber' }]
   const out: Badge[] = []
   if (model.media_type === 'image') out.push({ label: '图像', tone: 'green' })
   if (model.media_type === 'video') out.push({ label: '视频', tone: 'blue' })
@@ -129,14 +130,24 @@ export function ModelSelect({ label = '选择模型', models, value, onChange }:
         <div className="modelMenu" role="listbox" aria-label={label}>
           {models.map((m) => {
             const isSelected = m.model_id === value
+            const isDisabled = !!m.coming_soon
             return (
               <button
                 key={m.model_id}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                className={isSelected ? 'modelOption modelOptionSelected' : 'modelOption'}
+                aria-disabled={isDisabled}
+                disabled={isDisabled}
+                className={[
+                  'modelOption',
+                  isSelected ? 'modelOptionSelected' : '',
+                  isDisabled ? 'modelOptionDisabled' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 onClick={() => {
+                  if (isDisabled) return
                   onChange(m.model_id)
                   setOpen(false)
                 }}

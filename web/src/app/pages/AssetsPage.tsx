@@ -4,6 +4,32 @@ import { api } from '../api/client'
 import type { Asset } from '../api/types'
 import { CardSelect } from '../components/CardSelect'
 
+function formatBytes(size: number | null | undefined): string {
+  const n = Number(size || 0)
+  if (!Number.isFinite(n) || n <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = n
+  let idx = 0
+  while (value >= 1024 && idx < units.length - 1) {
+    value /= 1024
+    idx += 1
+  }
+  return `${value >= 100 || idx === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[idx]}`
+}
+
+function formatDateText(v: string | null | undefined): string {
+  if (!v) return '-'
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return String(v)
+  return d.toLocaleString()
+}
+
+function formatDims(a: Asset | null): string {
+  if (!a) return '-'
+  if (a.width && a.height) return `${a.width} × ${a.height}`
+  return '-'
+}
+
 export function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [selected, setSelected] = useState<Asset | null>(null)
@@ -21,10 +47,10 @@ export function AssetsPage() {
         offset: 0,
       })
       setAssets(list)
-      if (selected) {
-        const next = list.find((a) => a.id === selected.id) || null
-        setSelected(next)
-      }
+      setSelected((prev) => {
+        if (prev) return list.find((a) => a.id === prev.id) || list[0] || null
+        return list[0] || null
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -38,6 +64,13 @@ export function AssetsPage() {
   const previewUrl = useMemo(() => {
     if (!selected) return null
     return `/api/assets/${selected.id}/content`
+  }, [selected])
+
+  const selectedMetadataText = useMemo(() => {
+    if (!selected) return ''
+    const meta = selected.metadata || {}
+    if (Object.keys(meta).length === 0) return ''
+    return JSON.stringify(meta, null, 2)
   }, [selected])
 
   return (
@@ -111,37 +144,49 @@ export function AssetsPage() {
             </div>
           ) : null}
 
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>类型</th>
-                <th>来源</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((a) => (
-                <tr
-                  key={a.id}
-                  style={{ cursor: 'pointer', background: selected?.id === a.id ? 'var(--rowSelectedBg)' : 'transparent' }}
-                  onClick={() => setSelected(a)}
-                >
-                  <td style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{a.id.slice(0, 10)}</td>
-                  <td>{a.media_type}</td>
-                  <td>{a.origin}</td>
-                  <td>{a.created_at}</td>
-                </tr>
-              ))}
-              {assets.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="muted">
-                    暂无资产
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <div className="labelRow" style={{ marginBottom: 8 }}>
+            <div>缩略图预览</div>
+            <div>{assets.length} 项</div>
+          </div>
+          {assets.length > 0 ? (
+            <div className="assetGallery">
+              {assets.map((a) => {
+                const thumbUrl = `/api/assets/${a.id}/content`
+                const active = selected?.id === a.id
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className={`assetThumbBtn${active ? ' assetThumbBtnActive' : ''}`}
+                    onClick={() => setSelected(a)}
+                    title={a.id}
+                  >
+                    <div className="assetThumbFrame">
+                      {a.media_type === 'image' ? (
+                        <img className="assetThumbImg" src={thumbUrl} alt={a.id} loading="lazy" />
+                      ) : (
+                        <div className="assetThumbPlaceholder">
+                          <div className="assetThumbPlaceholderTitle">VIDEO</div>
+                          <div className="assetThumbPlaceholderMeta">
+                            {a.duration_seconds ? `${a.duration_seconds}s` : '视频'}
+                          </div>
+                        </div>
+                      )}
+                      <div className="assetThumbBadge">{a.media_type === 'image' ? '图片' : '视频'}</div>
+                    </div>
+                    <div className="assetThumbMeta">
+                      <div className="assetThumbId">{a.id.slice(0, 10)}</div>
+                      <div className="assetThumbSub">
+                        {a.origin} · {formatDateText(a.created_at)}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="muted">暂无资产</div>
+          )}
         </div>
       </section>
 
@@ -165,6 +210,62 @@ export function AssetsPage() {
                   )
                 ) : null}
               </div>
+              <div className="assetDetailGrid" style={{ marginBottom: 12 }}>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">ID</div>
+                  <div className="assetDetailValue mono">{selected.id}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">类型</div>
+                  <div className="assetDetailValue">{selected.media_type}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">来源</div>
+                  <div className="assetDetailValue">{selected.origin}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">MIME</div>
+                  <div className="assetDetailValue mono">{selected.mime_type}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">大小</div>
+                  <div className="assetDetailValue">{formatBytes(selected.size_bytes)}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">尺寸</div>
+                  <div className="assetDetailValue">{formatDims(selected)}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">时长</div>
+                  <div className="assetDetailValue">
+                    {selected.duration_seconds != null ? `${selected.duration_seconds}s` : '-'}
+                  </div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">创建时间</div>
+                  <div className="assetDetailValue">{formatDateText(selected.created_at)}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">文件路径</div>
+                  <div className="assetDetailValue mono">{selected.file_path || '-'}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">源任务</div>
+                  <div className="assetDetailValue mono">{selected.source_job_id || '-'}</div>
+                </div>
+                <div className="assetDetailItem">
+                  <div className="assetDetailKey">父资产</div>
+                  <div className="assetDetailValue mono">{selected.parent_asset_id || '-'}</div>
+                </div>
+              </div>
+              {selectedMetadataText ? (
+                <div className="field" style={{ marginBottom: 12 }}>
+                  <div className="labelRow">
+                    <div>Metadata</div>
+                  </div>
+                  <textarea readOnly value={selectedMetadataText} style={{ minHeight: 90 }} />
+                </div>
+              ) : null}
               <div className="row">
                 <a href={previewUrl || '#'} download style={{ flex: 1 }}>
                   <button type="button" style={{ width: '100%' }} disabled={!previewUrl}>

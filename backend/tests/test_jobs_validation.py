@@ -173,3 +173,24 @@ def test_vertex_auth_mode_is_rejected(tmp_path):
     )
     assert resp.status_code == 400
     assert "Vertex AI auth mode has been removed" in resp.text
+
+
+def test_coming_soon_model_is_rejected(tmp_path):
+    app = create_app(AppConfig(data_dir=tmp_path / "data"))
+    client = TestClient(app)
+
+    resp = client.post(
+        "/api/jobs",
+        json={
+            "job_type": "image.generate",
+            "model_id": "seedream-5-0-lite",
+            "params": {
+                "prompt": "x",
+                "image_size": "2k",
+                "aspect_ratio": "1:1",
+            },
+            "auth": {"mode": "api_key"},
+        },
+    )
+    assert resp.status_code == 400
+    assert "coming soon" in resp.text.lower()

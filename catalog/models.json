@@ -42,6 +42,29 @@
     "duration_seconds": null
   },
   {
+    "model_id": "seedream-5-0-lite",
+    "display_name": "Seedream 5.0 Lite",
+    "provider_id": "volcengine_ark",
+    "provider_models": {
+      "image_generate": "seedream-5-0-lite"
+    },
+    "media_type": "image",
+    "auth_support": ["api_key"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": ["2k", "4k"],
+    "aspect_ratios": ["auto", "1:1"],
+    "reference_image_supported": true,
+    "max_reference_images": 14,
+    "sequential_image_generation_supported": true,
+    "max_output_images": 15,
+    "max_total_images": 15,
+    "start_end_image_supported": false,
+    "extend_supported": false,
+    "duration_seconds": null,
+    "coming_soon": true
+  },
+  {
     "model_id": "doubao-seedream-4-5-251128",
     "display_name": "Seedream-4.5",
     "provider_id": "volcengine_ark",
@@ -84,6 +107,25 @@
     "start_end_image_supported": false,
     "extend_supported": false,
     "duration_seconds": null
+  },
+  {
+    "model_id": "seeddance-2-0",
+    "display_name": "SeedDance 2.0",
+    "provider_id": "volcengine_ark",
+    "provider_models": {
+      "video_generate": "seeddance-2-0"
+    },
+    "media_type": "video",
+    "auth_support": ["api_key"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": null,
+    "aspect_ratios": ["auto", "16:9", "9:16", "1:1"],
+    "reference_image_supported": false,
+    "start_end_image_supported": true,
+    "extend_supported": false,
+    "duration_seconds": [5, 10],
+    "coming_soon": true
   },
   {
     "model_id": "veo-3.1",

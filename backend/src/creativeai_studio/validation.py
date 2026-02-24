@@ -41,6 +41,8 @@ def validate_job_create(payload: dict[str, Any], ctx: AppContext) -> ValidatedJo
     model = get_model(model_id)
     if model is None:
         raise ValidationError("Unknown model_id")
+    if model.get("coming_soon"):
+        raise ValidationError("Model is coming soon and cannot be selected yet")
 
     auth_mode = resolve_auth_mode(payload, ctx)
     if auth_mode not in set(model.get("auth_support") or []):

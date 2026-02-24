@@ -64,6 +64,7 @@ export function GeneratePage() {
     const mediaType = mode === 'video' ? 'video' : 'image'
     return models.filter((m) => m.media_type === mediaType)
   }, [models, mode])
+  const selectableModels = useMemo(() => filteredModels.filter((m) => !m.coming_soon), [filteredModels])
 
   const selectedModel = useMemo(() => {
     return filteredModels.find((m) => m.model_id === modelId) || null
@@ -74,6 +75,11 @@ export function GeneratePage() {
   const effectiveAuthMode = modelAuthSupport.includes(defaultAuthMode)
     ? defaultAuthMode
     : (modelAuthSupport[0] || defaultAuthMode)
+  const imageResolutionPresets = useMemo(() => {
+    if (jobType !== 'image.generate') return []
+    const presets = (selectedModel?.resolution_presets || []).map((v) => String(v))
+    return presets.length > 0 ? presets : ['1k']
+  }, [jobType, selectedModel])
   const supportsSequentialImageGeneration =
     jobType === 'image.generate' && !!selectedModel?.sequential_image_generation_supported
   const maxOutputImagesByModel = Math.max(1, Math.min(5, selectedModel?.max_output_images || 1))
@@ -89,10 +95,21 @@ export function GeneratePage() {
   }, [maxOutputImageCount])
 
   useEffect(() => {
+    if (jobType !== 'image.generate') return
+    if (imageResolutionPresets.length === 0) return
+    if (!imageResolutionPresets.includes(imageSize)) {
+      setImageSize(imageResolutionPresets[0])
+    }
+  }, [jobType, imageResolutionPresets, imageSize])
+
+  useEffect(() => {
     if (filteredModels.length === 0) return
-    const exists = filteredModels.some((m) => m.model_id === modelId)
-    if (!modelId || !exists) setModelId(filteredModels[0].model_id)
-  }, [filteredModels, modelId])
+    const current = filteredModels.find((m) => m.model_id === modelId) || null
+    if (current && !current.coming_soon) return
+    const next = selectableModels[0] || filteredModels[0]
+    if (!next) return
+    if (modelId !== next.model_id) setModelId(next.model_id)
+  }, [filteredModels, selectableModels, modelId])
 
   useEffect(() => {
     const id = job?.id
@@ -145,6 +162,12 @@ export function GeneratePage() {
     try {
       if (!settings) {
         throw new Error('设置未加载，请稍候重试。')
+      }
+      if (!selectedModel) {
+        throw new Error('请先选择模型。')
+      }
+      if (selectedModel.coming_soon) {
+        throw new Error('该模型即将推出，暂不可用。')
       }
       if (effectiveAuthMode === 'api_key' && selectedProviderId === 'google' && !settings.google_api_key_present) {
         throw new Error('该模型使用 Google API Key：请先在“设置”里保存 Google API Key。')
@@ -222,6 +245,12 @@ export function GeneratePage() {
               value={modelId}
               onChange={(id) => setModelId(id)}
             />
+            {selectedModel?.coming_soon ? (
+              <div className="statusPill" style={{ marginTop: 8 }}>
+                <span className="statusDot statusDotWarn" />
+                <span>该模型即将推出，当前仅展示，不可选择生成。</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="field">
@@ -258,7 +287,7 @@ export function GeneratePage() {
                     label="分辨率"
                     value={imageSize}
                     onChange={(v) => setImageSize(v)}
-                    options={(selectedModel?.resolution_presets || ['1k']).map((r) => ({
+                    options={imageResolutionPresets.map((r) => ({
                       value: r,
                       label: r,
                     }))}
@@ -381,12 +410,6 @@ export function GeneratePage() {
                 </div>
               )}
 
-              <div className="muted">
-                参考图使用当前模型通道：
-                {selectedProviderId === 'volcengine_ark'
-                    ? ' ARK API Key（Doubao Seedream）'
-                    : ' Google API Key（Gemini 多模态）'}
-              </div>
               {selectedProviderId === 'volcengine_ark' && !settings?.ark_api_key_present ? (
                 <div className="statusPill danger" style={{ marginTop: 8 }}>
                   <span className="statusDot statusDotErr" />
@@ -534,7 +557,12 @@ export function GeneratePage() {
           ) : null}
 
           <div className="row">
-            <button type="button" className="btnPrimary" onClick={onCreate} disabled={creating}>
+            <button
+              type="button"
+              className="btnPrimary"
+              onClick={onCreate}
+              disabled={creating || !selectedModel || !!selectedModel.coming_soon}
+            >
               {creating ? '创建中…' : '开始'}
             </button>
             <button

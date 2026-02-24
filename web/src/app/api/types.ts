@@ -9,6 +9,7 @@ export type AssetOrigin = 'upload' | 'generated'
 export type ModelInfo = {
   model_id: string
   display_name?: string
+  coming_soon?: boolean
   provider_id?: string
   provider_models?: Record<string, string>
   provider_model?: string

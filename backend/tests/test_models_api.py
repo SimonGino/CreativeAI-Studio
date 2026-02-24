@@ -16,8 +16,10 @@ def test_models_has_expected_ids(tmp_path):
         "nano-banana-pro",
         "doubao-seedream-4-5-251128",
         "doubao-seedream-4-0-250828",
+        "seedream-5-0-lite",
         "veo-3.1",
         "veo-3.1-fast",
+        "seeddance-2-0",
     } <= ids
 
     nano_fast = next(m for m in models if m["model_id"] == "nano-banana")
@@ -36,3 +38,11 @@ def test_models_has_expected_ids(tmp_path):
     assert doubao["display_name"] == "Seedream-4.5"
     assert doubao["provider_id"] == "volcengine_ark"
     assert doubao["auth_support"] == ["api_key"]
+
+    upcoming_image = next(m for m in models if m["model_id"] == "seedream-5-0-lite")
+    assert upcoming_image["display_name"] == "Seedream 5.0 Lite"
+    assert upcoming_image["coming_soon"] is True
+
+    upcoming_video = next(m for m in models if m["model_id"] == "seeddance-2-0")
+    assert upcoming_video["display_name"] == "SeedDance 2.0"
+    assert upcoming_video["coming_soon"] is True
