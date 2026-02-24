@@ -1,0 +1,62 @@
+[
+  {
+    "model_id": "nano-banana-pro",
+    "display_name": "Nano Banana Pro",
+    "provider_id": "google",
+    "provider_models": {
+      "image_generate": "gemini-3-pro-image-preview",
+      "image_edit": "imagen-3.0-capability-001"
+    },
+    "media_type": "image",
+    "auth_support": ["api_key", "vertex"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": ["1k", "2k"],
+    "aspect_ratios": ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
+    "reference_image_supported": true,
+    "start_end_image_supported": false,
+    "extend_supported": false,
+    "extend_requires_vertex": false,
+    "duration_seconds": null
+  },
+  {
+    "model_id": "veo-3.1",
+    "display_name": "Veo 3.1",
+    "provider_id": "google",
+    "provider_models": {
+      "video_generate": "veo-3.1",
+      "video_extend": "veo-3.1"
+    },
+    "media_type": "video",
+    "auth_support": ["api_key", "vertex"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": null,
+    "aspect_ratios": ["auto", "16:9", "9:16", "1:1"],
+    "reference_image_supported": false,
+    "start_end_image_supported": true,
+    "extend_supported": true,
+    "extend_requires_vertex": true,
+    "duration_seconds": [5, 10]
+  },
+  {
+    "model_id": "veo-3.1-fast",
+    "display_name": "Veo 3.1 Fast",
+    "provider_id": "google",
+    "provider_models": {
+      "video_generate": "veo-3.1-fast",
+      "video_extend": "veo-3.1-fast"
+    },
+    "media_type": "video",
+    "auth_support": ["api_key", "vertex"],
+    "auth_required": null,
+    "prompt_max_chars": 4000,
+    "resolution_presets": null,
+    "aspect_ratios": ["auto", "16:9", "9:16", "1:1"],
+    "reference_image_supported": false,
+    "start_end_image_supported": true,
+    "extend_supported": true,
+    "extend_requires_vertex": true,
+    "duration_seconds": [5, 10]
+  }
+]
